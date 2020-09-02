@@ -1,11 +1,15 @@
 package org.uu.nl.embedding.util;
 
+import org.apache.log4j.Logger;
+
 import grph.in_memory.InMemoryGrph;
 import grph.properties.NumericalProperty;
 import grph.properties.Property;
 import grph.properties.StringProperty;
 
 public class InMemoryRdfGraph extends InMemoryGrph {
+	
+    private final static Logger logger = Logger.getLogger("InMemoryRdfGraph");
 
     private final NumericalProperty edgeTypeProperty, edgeWeightProperty, vertexTypeProperty;
     private final StringProperty literalPredicateProperty;
@@ -20,6 +24,8 @@ public class InMemoryRdfGraph extends InMemoryGrph {
         vertexTypeProperty = new NumericalProperty("Vertex types",2, 0);
 
         literalPredicateProperty = new StringProperty("Literal Predicate", getVertices().size());
+        
+        logger.info("Graph initialized.");
     }
 
     public Property getLiteralPredicateProperty() { return literalPredicateProperty; }

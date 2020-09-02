@@ -186,6 +186,7 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 					}
 				}
 			} finally {
+				logger.info("ExecutorService shutting down.");
 				es.shutdown();
 			}
 			logger.info("Created links for " +edgesAdded+ " literal pairs");
