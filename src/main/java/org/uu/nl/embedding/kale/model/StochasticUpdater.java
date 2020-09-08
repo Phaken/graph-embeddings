@@ -141,12 +141,12 @@ public class StochasticUpdater {
 			for (int j = 0; j < this.MatrixE.columns(); j++) {
 				
 				// Get current gradient.
-				double dValue = this.MatrixEGradient.get(i, j);
-				this.MatrixEGradient.accumulatedByGrad(i, j);
+				double dValue = this.MatrixEGradient.getNeighbor(i, j);
+				this.MatrixEGradient.accumulatedByGradNeighbor(i, j);
 				// Calculate learned rate and add 1e-8 to prevent division by zero.
 				double dLearnRate = Math.sqrt(this.MatrixEGradient.getSum(i, j)) + 1e-8;
 				double dUpdatedValue = (-1.0 * this.dGammaE * dValue / dLearnRate);
-				this.MatrixE.add(i, j, dUpdatedValue);
+				this.MatrixE.addValue(i, j, dUpdatedValue);
 			}
 		}
 		// Loop through relation-gradient matrix and
@@ -155,12 +155,12 @@ public class StochasticUpdater {
 			for (int j = 0; j < this.MatrixR.columns(); j++) {
 
 				// Get current gradient.
-				double dValue = this.MatrixRGradient.get(i, j);
-				this.MatrixRGradient.accumulatedByGrad(i, j);
+				double dValue = this.MatrixRGradient.getNeighbor(i, j);
+				this.MatrixRGradient.accumulatedByGradNeighbor(i, j);
 				// Calculate learned rate and add 1e-8 to prevent division by zero.
 				double dLearnRate = Math.sqrt(this.MatrixRGradient.getSum(i, j)) + 1e-8;
 				double dUpdatedValue = (-1.0 * this.dGammaR * dValue / dLearnRate);
-				this.MatrixR.add(i, j, dUpdatedValue);
+				this.MatrixR.addValue(i, j, dUpdatedValue);
 			}
 		}
 		this.MatrixE.normalizeByRow();

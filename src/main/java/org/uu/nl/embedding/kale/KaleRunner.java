@@ -1,6 +1,7 @@
 package org.uu.nl.embedding.kale;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import org.apache.log4j.Logger;
@@ -22,6 +23,7 @@ public class KaleRunner {
 	private final Configuration config;
 	private final int iNumEntities;
 	private final int iNumRelations;
+	private final int iBcvSize;
 	private final HashSet<String> uniqueRelationTypes;
 	private final int iNumUniqueRelations;
 	
@@ -61,15 +63,30 @@ public class KaleRunner {
 		final int[] edges = graph.getEdges().toIntArray();
         logger.info("Edges succesfully loaded: " +edges.length+ " in total.");
 		this.uniqueRelationTypes = new HashSet<String>();
-		
+
 		//System.out.println("Predicate number #51808 is: " + graph.getEdgeLabelProperty().getValueAsString(edges[51808]).toLowerCase());
 		//String name = System.console().readLine();
-		
+		int e = -1;
         logger.info("Determining unique predicates.");
         try {
-		//for (int e = 0; e < edges.length; e++) {
-			for (int e = 0; e < 51808; e++) {
-				String predicate = graph.getEdgeLabelProperty().getValueAsString(edges[e]).toLowerCase();
+        	for (e = 0; e < edges.length; e++) {
+			//for (int e = 0; e < 51808; e++) {
+        		/*
+        		 * START TEMP
+        		 *
+        		if (e == 51808) {
+        			System.out.println("--------------------------------------------GEKKE EDGE: " +edges[e]);
+        			System.out.println("--------------------------------------------GEKKE EDGE: " + graph.getEdgeTypeProperty().getValueAsInt(edges[e]));
+        		}
+        		/*
+        		 * END TEMP
+        		 */
+        		
+        		String predicate;
+        		if (graph.getEdgeTypeProperty().getValueAsInt(edges[e]) != 0) 
+        			predicate = graph.getEdgeLabelProperty().getValueAsString(edges[e]).toLowerCase();
+        		else predicate = "generated_predicate";
+        		//else predicate = Integer.toString(graph.getEdgeTypeProperty().getValueAsInt(edges[e]));
 				//System.out.println("Predicate #" +e+": " + predicate);
 				
 				if (!this.uniqueRelationTypes.contains(predicate)) {
@@ -79,7 +96,7 @@ public class KaleRunner {
 				//System.out.println("Checked edges: " +chEdges);
 				if (e == edges.length) System.out.println("Last edge was checked: ended with number: "+e);
 			}
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception ex) { /*System.out.println("\nweird edge = " + edges[e] + "\n");*/ ex.printStackTrace(); }
         logger.info("Finished with " +uniqueRelationTypes.size()+ " unique predicates.");
 		
 		this.iNumEntities = verts.length;
@@ -89,6 +106,7 @@ public class KaleRunner {
 		boolean nonDefault = true;
         logger.info("Generating kale BookmarkColoring.");
 		BookmarkColoring BCA = new BookmarkColoring(graph, config, nonDefault);
+		this.iBcvSize = BCA.maxNeighbors;
 		/*
 		 * START TEMP
 		 *
@@ -119,13 +137,15 @@ public class KaleRunner {
         logger.info("Creating Kale Model and initializing it.");
 		this.kale = new KaleModel();
 		this.kale.Initialization(this.iNumUniqueRelations, 
-				this.iNumEntities, 
+				this.iNumEntities,
+				this.iBcvSize,
 				this.fnTrainingTriples, 
 				this.fnValidateTriples, 
 				this.fnTestingTriples, 
 				this.fnTrainingRules,
 				this.fnGloveVectors,
-				this.graph, this.config);
+				this.graph, this.config,
+				true);
         logger.info("Start training the Kale Model using Cochez method.");
 		this.kale.CochezLearn();
 	}

@@ -273,23 +273,23 @@ public class DataGenerator {
 		// Create list with rules.
 		ArrayList<String> rulesList = new ArrayList<String>();
 		
-		rulesList.add("_birthdate(x,y)" + this.sep + "&" + this.sep + "_deathdate(x,z)" + this.sep + "==>" + this.sep + "_is_same_or_before(y,z)" + nl);
-		rulesList.add("_birthdate(x,y)" + this.sep + "==>" + this.sep + "_deathdate(x,z)" + this.sep + "&" + this.sep + "_is_same_or_before(y,z)" + nl);
+		rulesList.add("birth_date_approx(x,y)" + this.sep + "&" + this.sep + "death_date_approx(x,z)" + this.sep + "==>" + this.sep + "_is_same_or_before(y,z)" + nl);
+		rulesList.add("birth_date_approx(x,y)" + this.sep + "==>" + this.sep + "death_date_approx(x,z)" + this.sep + "&" + this.sep + "_is_same_or_before(y,z)" + nl);
 		rulesList.add("!" + this.sep + "_is_same_or_before(y,z)" + this.sep + "==>" + this.sep + 
-				"!" + this.sep + "_birthdate(x,y)" + this.sep + 
-				"|" + this.sep + "!" + this.sep + "_deathdate(x,z)" + nl);
+				"!" + this.sep + "birth_date_approx(x,y)" + this.sep + 
+				"|" + this.sep + "!" + this.sep + "death_date_approx(x,z)" + nl);
 		
-		rulesList.add("_birthdate(x,y)" + this.sep + "&" + this.sep + "_baptised_on(x,z)" + this.sep + "==>" + this.sep + "_is_same_or_before(y,z)" + nl);
-		rulesList.add("_birthdate(x,y)" + this.sep + "==>" + this.sep + "_baptised_on(x,z)" + this.sep + "&" + this.sep + "_is_same_or_before(y,z)" + nl);
+		rulesList.add("birth_date_approx(x,y)" + this.sep + "&" + this.sep + "baptism_date_approx(x,z)" + this.sep + "==>" + this.sep + "_is_same_or_before(y,z)" + nl);
+		rulesList.add("birth_date_approx(x,y)" + this.sep + "==>" + this.sep + "baptism_date_approx(x,z)" + this.sep + "&" + this.sep + "_is_same_or_before(y,z)" + nl);
 		rulesList.add("!" + this.sep + "_is_same_or_before(y,z)" + this.sep + "==>" + this.sep + 
-				"!" + this.sep + "_birthdate(x,y)" + this.sep + 
-				"|" + this.sep + "!" + this.sep + "_baptised_on(x,z)" + nl);
+				"!" + this.sep + "birth_date_approx(x,y)" + this.sep + 
+				"|" + this.sep + "!" + this.sep + "baptism_date_approx(x,z)" + nl);
 		
-		rulesList.add("_baptised_on(x,y)" + this.sep + "&" + this.sep + "_deathdate(x,z)" + this.sep + "==>" + this.sep + "_is_same_or_before(y,z)" + nl);
-		rulesList.add("_baptised_on(x,y)" + this.sep + "==>" + this.sep + "_deathdate(x,z)" + this.sep + "&" + this.sep + "_is_same_or_before(y,z)" + nl);
+		rulesList.add("baptism_date_approx(x,y)" + this.sep + "&" + this.sep + "death_date_approx(x,z)" + this.sep + "==>" + this.sep + "_is_same_or_before(y,z)" + nl);
+		rulesList.add("baptism_date_approx(x,y)" + this.sep + "==>" + this.sep + "death_date_approx(x,z)" + this.sep + "&" + this.sep + "_is_same_or_before(y,z)" + nl);
 		rulesList.add("!" + this.sep + "_is_same_or_before(y,z)" + this.sep + "==>" + this.sep + 
-				"!" + this.sep + "_baptised_on(x,y)" + this.sep + 
-				"|" + this.sep + "!" + this.sep + "_deathdate(x,z)" + nl);
+				"!" + this.sep + "baptism_date_approx(x,y)" + this.sep + 
+				"|" + this.sep + "!" + this.sep + "death_date_approx(x,z)" + nl);
 		
 		KaleEmbeddingTextWriter kaleWriter = new KaleEmbeddingTextWriter(this.fnTrainingRules, this.config);
 		kaleWriter.write(rulesList);
@@ -398,8 +398,7 @@ public class DataGenerator {
 			ioe.printStackTrace();
 		}
 		return fnDir;
-	}
-	
+	}	
 	
 	
 	/*

@@ -77,7 +77,7 @@ public class TripleGradient {
 			 * Where e_i, r_k, e_j are the GloVe vector embedding of
 			 * head entity, relation, and tail entity respectively.
 			 */
-			tripleSum = this.MatrixE.get(iPosHead, p) + this.MatrixR.get(iPosRelation, p) - this.MatrixE.get(iPosTail, p);
+			tripleSum = this.MatrixE.getNeighbor(iPosHead, p) + this.MatrixR.getNeighbor(iPosRelation, p) - this.MatrixE.getNeighbor(iPosTail, p);
 			this.dPosPi -= Math.abs(tripleSum);
 		}
 		this.dPosPi *= dValue;
@@ -86,7 +86,7 @@ public class TripleGradient {
 		// Repeat for negative triple
 		this.dNegPi = 0.0;
 		for (int p = 0; p < iNumberOfFactors; p++) {
-			tripleSum = this.MatrixE.get(iNegHead, p) + this.MatrixR.get(iNegRelation, p) - this.MatrixE.get(iNegTail, p);
+			tripleSum = this.MatrixE.getNeighbor(iNegHead, p) + this.MatrixR.getNeighbor(iNegRelation, p) - this.MatrixE.getNeighbor(iNegTail, p);
 			this.dNegPi -= Math.abs(tripleSum);
 		}
 		this.dNegPi *= dValue;
@@ -98,23 +98,23 @@ public class TripleGradient {
 			for (int p = 0; p < iNumberOfFactors; p++) {
 				// Update gradient based on positive triple
 				double dPosSgn = 0.0;
-				tripleSum = this.MatrixE.get(iPosHead, p) + this.MatrixR.get(iPosRelation, p) - this.MatrixE.get(iPosTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iPosHead, p) + this.MatrixR.getNeighbor(iPosRelation, p) - this.MatrixE.getNeighbor(iPosTail, p);
 				if (tripleSum > 0)  	dPosSgn = 1.0;
 				else if (tripleSum < 0) dPosSgn = -1.0;
 				
-				this.MatrixEGradient.add(iPosHead, p, (dPosSgn * dValue));
-				this.MatrixRGradient.add(iPosRelation, p, (dPosSgn * dValue));
-				this.MatrixEGradient.add(iPosTail, p, (-1.0 * dPosSgn * dValue));
+				this.MatrixEGradient.addValue(iPosHead, p, (dPosSgn * dValue));
+				this.MatrixRGradient.addValue(iPosRelation, p, (dPosSgn * dValue));
+				this.MatrixEGradient.addValue(iPosTail, p, (-1.0 * dPosSgn * dValue));
 
 				// Update gradient based on negative triple
 				double dNegSgn = 0.0;
-				tripleSum = this.MatrixE.get(iNegHead, p) + this.MatrixR.get(iNegRelation, p) - this.MatrixE.get(iNegTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iNegHead, p) + this.MatrixR.getNeighbor(iNegRelation, p) - this.MatrixE.getNeighbor(iNegTail, p);
 				if (tripleSum > 0) 		dNegSgn = 1.0;
 				else if (tripleSum < 0) dNegSgn = -1.0;
 				
-				this.MatrixEGradient.add(iNegHead, p, (-1.0 * dValue * dNegSgn));
-				this.MatrixRGradient.add(iNegRelation, p, (-1.0 * dValue * dNegSgn));
-				this.MatrixEGradient.add(iNegTail, p, (dValue * dNegSgn));
+				this.MatrixEGradient.addValue(iNegHead, p, (-1.0 * dValue * dNegSgn));
+				this.MatrixRGradient.addValue(iNegRelation, p, (-1.0 * dValue * dNegSgn));
+				this.MatrixEGradient.addValue(iNegTail, p, (dValue * dNegSgn));
 			}
 		}
 	}

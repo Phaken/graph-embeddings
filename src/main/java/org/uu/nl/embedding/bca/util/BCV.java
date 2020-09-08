@@ -18,6 +18,7 @@ public class BCV extends HashMap<Integer, Float> {
 
 	private final int rootNode;
 	public boolean notEmpty;
+	public int iNumNeighbors;
 
 	public int getRootNode() {
 		return this.rootNode;
@@ -25,6 +26,10 @@ public class BCV extends HashMap<Integer, Float> {
 
 	public BCV(int rootNode) {
 		this.rootNode = rootNode;
+	}
+	
+	public int getMaxNeighbors() {
+		return this.iNumNeighbors;
 	}
 
 	/*@Override

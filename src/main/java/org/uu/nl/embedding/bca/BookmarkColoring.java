@@ -37,6 +37,8 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 	private final ArrayList<Float> coOccurrenceValues;
 	private Map<String, Double> bcvMaxVals;
 	private final ArrayList<BCV> BCVs;
+	public int maxNeighbors;
+	private int neighborCntr;
 	
 	private double max;
 	private final int focusVectors, contextVectors;
@@ -178,6 +180,8 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 
 		this.graph = graph;
 		this.contextVectors = verts.length;
+		this.maxNeighbors = 0;
+		this.neighborCntr = 0;
 		
 		this.bcvMaxVals = new HashMap<String, Double>();
 		nonEmptyBcvs = new ArrayList<BCV>();
@@ -358,7 +362,6 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 			while(received < notSkipped) {
 				try {
 
-					//System.out.println("\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
 					final BCV bcv = completionService.take().get();
 					BCVs.add(bcv);
 					if (received == 0) logger.info("First CompletionService finished: BCV received.");
@@ -383,7 +386,7 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 					
 					/*
 					 * START TEMP
-					 */
+					 *
 					String tempStr = bcv.toString();
 					if (bcv.notEmpty && bcv.getRootNode() < 30) this.nonEmptyBcvs.add(bcv);
 					/*
@@ -391,13 +394,16 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 					 */
 					
 					// Create co-occurrence matrix for standard bcv
+					this.neighborCntr = 0;
 					for (Entry<Integer, Float> bcr : bcv.entrySet()) {
 						coOccurrenceIdx_I.add(bcv.getRootNode());
 						coOccurrenceIdx_J.add(bcr.getKey());
 						coOccurrenceValues.add(bcr.getValue());
+						if (bcr.getValue() != 0f) neighborCntr++;
 					}
 					coOccurrenceCount += bcv.size();
-
+					
+					if (this.maxNeighbors < neighborCntr) { this.maxNeighbors = neighborCntr; System.out.println("this.maxNeighbors= " + this.maxNeighbors); }
 
 					/*
 					 * START TEMP

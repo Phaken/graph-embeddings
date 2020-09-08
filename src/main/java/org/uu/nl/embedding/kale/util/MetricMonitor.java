@@ -17,11 +17,19 @@ public class MetricMonitor {
 	public HashMap<String, Boolean> lstTriples;
 	public KaleMatrix MatrixE;
 	public KaleMatrix MatrixR;
+	//public ArrayList<Integer> MatrixE;
+	//public ArrayList<Integer> MatrixR;
 	public double dMeanRank;
 	public double dMRR;
 	public double dHits;
 	public boolean isGlove;
-	private ArrayList<Integer> orderedCoOccurrenceIdx_I = null;
+	/*
+	private ArrayList<Integer> coOccurrenceIdx_I;
+	private ArrayList<Integer> coOccurrenceIdx_J;
+	private ArrayList<Float> coOccurrenceValues;
+	private ArrayList<Float> coOccurrenceGradient;*/
+	private HashMap<Integer, Integer> orderedIdxMap = null;
+	private int maxNeighbors;
 	
 	public MetricMonitor(TripleSet inLstValidateTriples,
 			HashMap<String, Boolean> inlstTriples,
@@ -39,13 +47,33 @@ public class MetricMonitor {
 			HashMap<String, Boolean> inlstTriples,
 			KaleMatrix inMatrixE,
 			KaleMatrix inMatrixR,
-			ArrayList<Integer> orderedCoOccurrenceIdx_I,
+			HashMap<Integer, Integer> orderedIdxMap,
 			final boolean isGlove) {
 		this.lstValidateTriples = inLstValidateTriples;
 		this.lstTriples = inlstTriples;
 		this.MatrixE = inMatrixE;
 		this.MatrixR = inMatrixR;
-		this.orderedCoOccurrenceIdx_I = orderedCoOccurrenceIdx_I;
+		this.orderedIdxMap = orderedIdxMap;
+		this.isGlove = isGlove;
+	}
+	
+	public MetricMonitor(TripleSet inLstValidateTriples,
+			HashMap<String, Boolean> inlstTriples,
+			ArrayList<Integer> coOccurrenceIdx_I,
+			ArrayList<Integer> coOccurrenceIdx_J,
+			ArrayList<Float> coOccurrenceValues,
+			ArrayList<Float> coOccurrenceGradient,
+			HashMap<Integer, Integer> orderedIdxMap,
+			int maxNeighbors,
+			final boolean isGlove) {
+		this.lstValidateTriples = inLstValidateTriples;
+		this.lstTriples = inlstTriples;/*
+		this.coOccurrenceIdx_I = coOccurrenceIdx_I;
+		this.coOccurrenceIdx_J = coOccurrenceIdx_J;
+		this.coOccurrenceValues =coOccurrenceValues;
+		this.coOccurrenceGradient = coOccurrenceGradient;*/
+		this.orderedIdxMap = orderedIdxMap;
+		this.maxNeighbors = maxNeighbors;
 		this.isGlove = isGlove;
 	}
 	
@@ -65,11 +93,12 @@ public class MetricMonitor {
 	 * @author Euan Westenbroek
 	 */
 	public void calculateMetricsGlove() throws Exception {
-		int iNumberOfEntities = this.MatrixE.rows();
-		int iNumberOfFactors = this.MatrixE.columns();
+		int iNumberOfEntities = this.orderedIdxMap.size();
+		int iNumberOfFactors = this.maxNeighbors;
 		
 		// Initialize variables.
 		int iCnt = 0;
+		int nextIdx;
 		double tripleSum;
 		double avgMeanRank = 0.0;
 		double avgMRR = 0.0;
@@ -92,7 +121,7 @@ public class MetricMonitor {
 				 * Where e_i, r_k, e_j are the GloVe vector embedding of
 				 * head entity, relation, and tail entity respectively.
 				 */
-				tripleSum = this.MatrixE.get(iSubjectID, p) + this.MatrixR.get(iRelationID, p) - this.MatrixE.get(iObjectID, p);
+				tripleSum = this.MatrixE.getNeighbor(iSubjectID, p) + this.MatrixR.getNeighbor(iRelationID, p) - this.MatrixE.getNeighbor(iObjectID, p);
 				dTargetValue -= Math.abs(tripleSum);
 			}
 			
@@ -103,7 +132,10 @@ public class MetricMonitor {
 			for (int iLeftID = 0; iLeftID < iNumberOfEntities; iLeftID++) {
 				// Get altered entity and skip if its the same as the
 				// iSubjectID.
-				leftID = this.orderedCoOccurrenceIdx_I.get(iLeftID);
+				/*
+				 * leftID = this.orderedIdxMap.get(iLeftID);
+				 */
+				leftID = iLeftID;
 				if (leftID == iSubjectID) continue;
 				
 				String negTriple = leftID + "\t" + iRelationID + "\t" +iObjectID;
@@ -113,7 +145,7 @@ public class MetricMonitor {
 				double dValue = 0.0;
 				if (!this.lstTriples.containsKey(negTriple)){
 					for (int p = 0; p < iNumberOfFactors; p++) {
-						tripleSum = this.MatrixE.get(leftID, p) + this.MatrixR.get(iRelationID, p) - this.MatrixE.get(iObjectID, p);
+						tripleSum = this.MatrixE.getNeighbor(leftID, p) + this.MatrixR.getNeighbor(iRelationID, p) - this.MatrixE.getNeighbor(iObjectID, p);
 						dValue -= Math.abs(tripleSum);
 					}
 					// Increment rank if resulting value is larger than
@@ -145,7 +177,10 @@ public class MetricMonitor {
 			for (int iRightID = 0; iRightID < iNumberOfEntities; iRightID++) {
 				// Get altered entity and skip if its the same as the
 				// iObjectID.
-				rightID = this.orderedCoOccurrenceIdx_I.get(iRightID);
+				/*
+				 * rightID = this.orderedIdxMap.get(iRightID);
+				 */
+				rightID = iRightID;
 				if (rightID == iObjectID) continue;
 				
 				String negTiple = iSubjectID + "\t" + iRelationID + "\t" + rightID;
@@ -155,7 +190,7 @@ public class MetricMonitor {
 				double dValue = 0.0;
 				if(!lstTriples.containsKey(negTiple)){
 					for (int p = 0; p < iNumberOfFactors; p++) {
-						tripleSum = this.MatrixE.get(iSubjectID, p) + this.MatrixR.get(iRelationID, p) - this.MatrixE.get(rightID, p);
+						tripleSum = this.MatrixE.getNeighbor(iSubjectID, p) + this.MatrixR.getNeighbor(iRelationID, p) - this.MatrixE.getNeighbor(rightID, p);
 						dValue -= Math.abs(tripleSum);
 					}
 					// Increment rank if resulting value is larger than

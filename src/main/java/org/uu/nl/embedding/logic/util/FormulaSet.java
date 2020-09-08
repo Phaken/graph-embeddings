@@ -10,6 +10,7 @@ public class FormulaSet {
 	
 	private final TreeSet<String> ruleSet;
 	private final Literal[] literals;
+	private String[] operators;
 	private final ArrayList<String> strLiterals;
 	
 	public FormulaSet(final String line) throws Exception {
@@ -17,12 +18,21 @@ public class FormulaSet {
 		
 		this.strLiterals = new ArrayList<String>();
 		String[] tokens = line.split("\t");
+		String[] ops = new String[10]; /*Should be fixed when rules become larger*/
 		ArrayList<String> nots = new ArrayList<String>();
 		
-		int counter = 0;
+		int counter = 0, iOperators = 0;
 		boolean implication = false;
 		for (int i = 0; i < tokens.length; i++) {
-			if (tokens[i] == "==>") implication = true;
+			if (tokens[i] == "==>") {
+				implication = true;
+				ops[i] = tokens[i];
+				iOperators++;
+			}
+			if ((tokens[i].contains("!")) || (tokens[i].contains("&")) || (tokens[i].contains("|"))) {
+				ops[i] = tokens[i];
+				iOperators++;
+			}
 			
 			if (!tokens[i].contains("!") && !implication) nots.add(tokens[i]); 
 			else if (tokens[i].contains("!") && implication) nots.add(tokens[i]);
@@ -33,20 +43,23 @@ public class FormulaSet {
 			}
 		}
 		
-		if (counter > 3) throw new Exception("load error in FormulaSet: data format incorrect");
+		this.operators = new String[iOperators];
+		for (int i = 0; i < iOperators; i++) this.operators[i] = ops[i];
+		
+		if (counter > 3) throw new Exception("Loading error in FormulaSet: data format incorrect.");
 		
 		
 		this.literals = new Literal[this.strLiterals.size()];
 		for (int i = 0; i < this.strLiterals.size(); i++) {
 			this.literals[i] = new Literal(extractTerms(this.strLiterals.get(i)));
 			
-			if (this.strLiterals.get(i).contains("_birthdate") && this.literals[i].name == "_birthdate") {
+			if (this.strLiterals.get(i).contains("birth_date_approx") && this.literals[i].name == "birth_date_approx") {
 				this.ruleSet.add(this.literals[i].name);
 				
-			} else if (this.strLiterals.get(i).contains("_deathdate") && this.literals[i].name == "_deathdate") {
+			} else if (this.strLiterals.get(i).contains("death_date_approx") && this.literals[i].name == "death_date_approx") {
 				this.ruleSet.add(this.literals[i].name);
 				
-			} else if (this.strLiterals.get(i).contains("_baptised_on") && this.literals[i].name == "_baptised_on") {
+			} else if (this.strLiterals.get(i).contains("baptism_date_approx") && this.literals[i].name == "baptism_date_approx") {
 				this.ruleSet.add(this.literals[i].name);
 				
 			} else if (this.strLiterals.get(i).contains("_is_same_or_before") && this.literals[i].name == "_is_same_or_before") {
@@ -59,7 +72,6 @@ public class FormulaSet {
 	
 	public String[] extractTerms(String literal) {
 		String[] resTokens = literal.split("[(,)]");
-		System.out.println(resTokens);
 		return resTokens;
 	}
 	
@@ -88,6 +100,10 @@ public class FormulaSet {
 		return tokens;
 	}
 	
+	public String[] getOperators() {
+		return this.operators;
+	}
+	
 	public String[] getOrigArgs() {
 		String[] tokens = new String[(this.literals.length * 3)];
 		int counter = 0;
@@ -101,7 +117,7 @@ public class FormulaSet {
 	
 	/**
 	 * Inner class: Literal.
-	 * @author euan
+	 * @author Euan Westenbroek
 	 *
 	 */
 	private class Literal {

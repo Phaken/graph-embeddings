@@ -92,7 +92,6 @@ public class KaleUndirectedWeightedNodeBased extends BCAJobStable {
 		final BCV bcv = new BCV(this.bookmark);
         String bookmarkPred = this.graph.getEdgeLabelProperty().getValueAsString(this.bookmark).toLowerCase();
 
-
 		int[] neighbors, edges;
 		int focusNode;
 		double wetPaint, partialWetPaint, totalWeight;

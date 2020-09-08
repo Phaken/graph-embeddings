@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.TreeMap;
 
+import org.apache.log4j.Logger;
 import org.uu.nl.embedding.kale.util.StringSplitter;
 
 
@@ -17,6 +18,8 @@ import org.uu.nl.embedding.kale.util.StringSplitter;
  *
  */
 public class TripleSet {
+    private final static Logger logger = Logger.getLogger("TripleSet");
+    
 	private int iNumberOfEntities;
 	private int iNumberOfRelations;
 	private int iNumberOfTriples;
@@ -79,7 +82,6 @@ public class TripleSet {
 	 * @author Euan Westenbroek
 	 */
 	public void addTriples(final Triple[] triples) throws Exception {
-		Triple triple;
 		// Loop through arrays and construct Triples from them.
 		for (int i = 0; i < triples.length; i++) {
 			addTriples(triples[i]);
@@ -94,14 +96,14 @@ public class TripleSet {
 	 */
 	public void addTriples(final Triple triple) throws Exception {
 		// Check for valid values.
-		if (triple.head() < 0 || triple.head() >= iNumberOfEntities) {
-			throw new Exception("load error in TripleSet: head entity ID out of range");
+		if (triple.head() < 0) {
+			throw new Exception("Loading error in TripleSet: head entity ID out of range");
 		}
-		if (triple.tail() < 0 || triple.tail() >= iNumberOfEntities) {
-			throw new Exception("load error in TripleSet: tail entity ID out of range");
+		if (triple.tail() < 0) {
+			throw new Exception("Loading error in TripleSet: tail entity ID out of range");
 		}
-		if (triple.relation() < 0 || triple.relation() >= iNumberOfRelations) {
-			throw new Exception("load error in TripleSet: relation ID out of range");
+		if (triple.relation() < 0) {
+			throw new Exception("Loading error in TripleSet: relation ID out of range");
 		}
 		this.pTriple.add(triple);
 	}
@@ -122,21 +124,25 @@ public class TripleSet {
 			iTriple = arTripleSet[i];
 			
 			// Check for valid format.
+			String strTriple = "";
 			if (iTriple.length != 3) {
-				throw new Exception("load error in TripleSet: data format incorrect");
+				for (int token : iTriple) strTriple += token + " - ";
+				throw new Exception("Loading error in TripleSet: data format incorrect. "
+						+ "Expected 3, but received " + iTriple.length + ". With the following values:\n"
+						+ strTriple);
 			}
 			int iHead = iTriple[0];
 			int iTail = iTriple[1];
 			int iRelation = iTriple[2];
 			// Check for valid values.
-			if (iHead < 0 || iHead >= iNumberOfEntities) {
-				throw new Exception("load error in TripleSet: head entity ID out of range");
+			if (iHead < 0) {
+				throw new Exception("Loading error in TripleSet: head entity ID out of range");
 			}
-			if (iTail < 0 || iTail >= iNumberOfEntities) {
-				throw new Exception("load error in TripleSet: tail entity ID out of range");
+			if (iTail < 0) {
+				throw new Exception("Loading error in TripleSet: tail entity ID out of range");
 			}
-			if (iRelation < 0 || iRelation >= iNumberOfRelations) {
-				throw new Exception("load error in TripleSet: relation ID out of range");
+			if (iRelation < 0) {
+				throw new Exception("Loading error in TripleSet: relation ID out of range");
 			}
 			this.pTriple.add(new Triple(iHead, iTail, iRelation));
 		}
@@ -148,26 +154,54 @@ public class TripleSet {
 		pTriple = new ArrayList<Triple>();
 		
 		String line = "";
-		while ((line = reader.readLine()) != null) {
-			String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
-					.split("\t ", line));
-			if (tokens.length != 3) {
-				throw new Exception("load error in TripleSet: data format incorrect");
+		try {
+			/*while (((line = reader.readLine()) != null) &&
+					((line.contains("#")) || (line.toLowerCase().contains("method:")))) {
+				/*Do nothing.
+				//System.out.println("#Commented line -> Skipped.");
+			}*/
+			
+			while ((line = reader.readLine()) != null) {
+				
+				if ((line.contains("#")) || (line.toLowerCase().contains("method:")))
+					{ /*System.out.println(line);*/ continue; }
+				
+				String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
+						.split("\t ", line));
+				if (tokens.length != 3) {
+					String str = "";
+					for (String token : tokens) str += token + " ";
+					throw new Exception("Loading error in TripleSet: data format incorrect. "
+							+ "Expected 3, but received " + tokens.length + ". With the following values:\n"
+							+ str);
+				}
+				int iHead = Integer.parseInt(tokens[0]);
+				int iTail = Integer.parseInt(tokens[2]);
+				int iRelation = Integer.parseInt(tokens[1]);
+				if (iHead < 0) {
+					throw new Exception("Loading error in TripleSet: head entity ID out of range.");
+				}
+				if (iTail < 0) {
+					throw new Exception("Loading error in TripleSet: tail entity ID out of range.");
+				}
+				if (iRelation < 0) {
+					throw new Exception("Loading error in TripleSet: relation ID out of range.");
+				}/*
+				if (iHead < 0 || iHead >= iNumberOfEntities) {
+					throw new Exception("Loading error in TripleSet: head entity ID out of range.\n" + 
+							"Expected positive number up to: " + iNumberOfEntities + ", instead received: " + iHead);
+				}
+				if (iTail < 0 || iTail >= iNumberOfEntities) {
+					throw new Exception("Loading error in TripleSet: tail entity ID out of range.\n" + 
+							"Expected positive number up to: " + iNumberOfEntities + ", instead received: " + iTail);
+				}
+				if (iRelation < 0 || iRelation >= iNumberOfRelations) {
+					throw new Exception("Loading error in TripleSet: relation ID out of range.\n" +
+							"Expected positive number up to: " + iNumberOfRelations + ", instead received: " + iRelation);
+				}*/
+				pTriple.add(new Triple(iHead, iTail, iRelation));
 			}
-			int iHead = Integer.parseInt(tokens[0]);
-			int iTail = Integer.parseInt(tokens[2]);
-			int iRelation = Integer.parseInt(tokens[1]);
-			if (iHead < 0 || iHead >= iNumberOfEntities) {
-				throw new Exception("load error in TripleSet: head entity ID out of range");
-			}
-			if (iTail < 0 || iTail >= iNumberOfEntities) {
-				throw new Exception("load error in TripleSet: tail entity ID out of range");
-			}
-			if (iRelation < 0 || iRelation >= iNumberOfRelations) {
-				throw new Exception("load error in TripleSet: relation ID out of range");
-			}
-			pTriple.add(new Triple(iHead, iTail, iRelation));
-		}
+		} catch (Exception e) { e.printStackTrace(); }
 		
 		iNumberOfTriples = pTriple.size();
 		reader.close();
@@ -190,31 +224,43 @@ public class TripleSet {
 		pTriple = new ArrayList<Triple>();
 		
 		String line = "";
-		int count=0;
-		while ((line = reader.readLine()) != null) {
-			count++;
-			String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
-					.split("\t ", line));
-			if (tokens.length != 3) {
-				throw new Exception("load error in TripleSet: data format incorrect");
+		//int count=0;
+		try {
+			while ((line = reader.readLine()) != null) {
+				if ((line.contains("#")) || (line.toLowerCase().contains("method:")))
+					{ /*System.out.println(line);*/ continue; }
+				
+				//count++;
+				String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
+						.split("\t ", line));
+				// Check for valid format.
+				if (tokens.length != 3) {
+					String str = "";
+					for (String token : tokens) str += token + " ";
+					System.out.println(str);
+					throw new Exception("Loading error in TripleSet: data format incorrect. "
+							+ "Expected 3, but received " + tokens.length + ". With the following values:\n"
+							+ str);
+				}
+				int iHead = Integer.parseInt(tokens[0]);
+				int iTail = Integer.parseInt(tokens[2]);
+				int iRelation = Integer.parseInt(tokens[1]);
+				if (iHead < 0) {
+					throw new Exception("Loading error in TripleSet: head entity ID out of range");
+				}
+				if (iTail < 0) {
+					throw new Exception("Loading error in TripleSet: tail entity ID out of range");
+				}
+				if (iRelation < 0) {
+					throw new Exception("Loading error in TripleSet: relation ID out of range");
+				}
+				pTriple.add(new Triple(iHead, iTail, iRelation));
+				/*
+				if(count==1000){
+					break;
+				}*/
 			}
-			int iHead = Integer.parseInt(tokens[0]);
-			int iTail = Integer.parseInt(tokens[2]);
-			int iRelation = Integer.parseInt(tokens[1]);
-			if (iHead < 0 || iHead >= iNumberOfEntities) {
-				throw new Exception("load error in TripleSet: head entity ID out of range");
-			}
-			if (iTail < 0 || iTail >= iNumberOfEntities) {
-				throw new Exception("load error in TripleSet: tail entity ID out of range");
-			}
-			if (iRelation < 0 || iRelation >= iNumberOfRelations) {
-				throw new Exception("load error in TripleSet: relation ID out of range");
-			}
-			pTriple.add(new Triple(iHead, iTail, iRelation));
-			if(count==1000){
-				break;
-			}
-		}
+		} catch (Exception e) { e.printStackTrace(); }
 		
 		iNumberOfTriples = pTriple.size();
 		reader.close();

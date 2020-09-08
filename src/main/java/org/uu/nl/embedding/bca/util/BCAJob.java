@@ -18,7 +18,7 @@ public abstract class BCAJob implements Callable<BCV> {
 	protected final double alpha, epsilon;
 	protected final InMemoryRdfGraph graph;
 	protected final int[][] vertexOut, vertexIn, edgeOut, edgeIn;
-
+	
 	protected BCAJob(
 			int bookmark, boolean reverse,
 			double alpha, double epsilon,
