@@ -48,7 +48,7 @@ public class RuleGradient {
 	
 	public void calculateGradient(double weight) throws Exception {
 		if (this.isGlove) calculateGradientGlove(weight); // VERDER GAAN WAAR GEBLEVEN
-		else calculateGradientDefault(weight);
+		//else calculateGradientDefault(weight);
 	}
 	
 	/**
@@ -338,7 +338,7 @@ public class RuleGradient {
 	}
 	
 	
-	public void calculateGradientDefault(double weight) throws Exception {
+	/*public void calculateGradientDefault(double weight) throws Exception {
 		int iNumberOfFactors = MatrixE.columns();
 		int iFstHead = Rule.getFirstTriple().head();
 		int iFstTail = Rule.getFirstTriple().tail();
@@ -561,5 +561,5 @@ public class RuleGradient {
 				
 			}
 		}		
-	}	
+	}	*/
 }

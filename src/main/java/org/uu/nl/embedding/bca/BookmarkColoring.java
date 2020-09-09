@@ -18,6 +18,8 @@ import org.uu.nl.embedding.util.InMemoryRdfGraph;
 import org.uu.nl.embedding.util.config.Configuration;
 import org.uu.nl.embedding.util.rnd.Permutation;
 
+import grph.properties.NumericalProperty;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +55,9 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 	private final int[][] outEdge;
 	private final Map<Integer, Integer> context2focus;
 	private final Map<Integer, Integer> focus2context;
+	
+	public TreeMap<Integer, Integer> edgeIdMap;
+	public TreeMap<Integer, Integer> edgeIdTypeMap;
 	
 	/*
 	 * START TEMP
@@ -228,11 +233,11 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 				}
 		}
 		logger.info("Finished selecting vertices to compute BCVs.");
-		
-		TreeMap<Integer, Integer> edgeIdMap = generateEdgeIdMap(graph);
+		this.edgeIdMap = generateEdgeIdMap();
+		this.edgeIdTypeMap = generateEdgeIdTypeMap();
 		// Initialization standard co-occurrence matrix
 		this.focusVectors = notSkipped;
-		final int nVectors = notSkipped + edgeIdMap.size();
+		final int nVectors = notSkipped + this.edgeIdTypeMap.size();
 		this.coOccurrenceIdx_I = new ArrayList<>(nVectors);
 		this.coOccurrenceIdx_J = new ArrayList<>(nVectors);
 		this.coOccurrenceValues = new ArrayList<>(nVectors);
@@ -245,16 +250,18 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 
 		this.context2focus = new HashMap<>();
 		this.focus2context = new HashMap<>();
+		int[] vectorIDs = generateIdArray(performBCA, this.edgeIdTypeMap);
+		System.out.println("notSkipped + this.edgeIdTypeMap.size()= " + nVectors + "\nvectorIDs.length= " + vectorIDs.length);
 		
 		// Create subgraphs according to config-file.
 		boolean loggerInfoProvided = false;
 		logger.info("Start performing generating BCVs.");
-		for(int i = 0, j = 0; i < this.contextVectors; i++) {
+		for(int i = 0, j = 0; i < vectorIDs.length; i++) {
 			
 			// Skip unnecessary nodes.
-			if(!performBCA[i]) continue;
+			//if(!performBCA[i]) continue; /* Already filtered out. */
 			
-			final int bookmark = verts[i];
+			final int bookmark = vectorIDs[i];
 			context2focus.put(bookmark, j);
 			focus2context.put(j, bookmark);
 			j++;
@@ -403,7 +410,7 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 					}
 					coOccurrenceCount += bcv.size();
 					
-					if (this.maxNeighbors < neighborCntr) { this.maxNeighbors = neighborCntr; System.out.println("this.maxNeighbors= " + this.maxNeighbors); }
+					if (this.maxNeighbors < neighborCntr) { this.maxNeighbors = neighborCntr; /*System.out.println("this.maxNeighbors= " + this.maxNeighbors);*/ }
 
 					/*
 					 * START TEMP
@@ -440,27 +447,119 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 	 * @param graph
 	 * @return
 	 */
-    public TreeMap<Integer, Integer> generateEdgeIdMap(final InMemoryRdfGraph graph) {
+    public TreeMap<Integer, Integer> generateEdgeIdMap() {
+    	
+    	logger.info("Start generating the edgeIdMap.");
+    	try {
+	        final int numVerts = this.graph.getVertices().toIntArray().length;
+	        //System.out.println("numVerts="+numVerts);
+	        final TreeMap<Integer, Integer> edgeNodeID = new TreeMap<Integer, Integer>();
+	        
+	        int[] edges;
+	        int edge, edgeID; int tempCntr = 0;
+	        for (int v = 0; v < this.outEdge.length; v++) {
+	        	edges = this.outEdge[v];
+	        	for (int e = 0; e < edges.length; e++) {
+	        		edge = edges[e];
+		        	
+		        	if (!edgeNodeID.containsKey(edge)) {
+			        	edgeID = numVerts + edge;
+		        		edgeNodeID.put(edge, edgeID);
+		        		tempCntr++;
+		        	}
+	        }}
+	        System.out.println("added "+tempCntr + " edges to the generateEdgeIdMap");
+	        logger.info("Finished generating the edgeIdMap.");
+	        return edgeNodeID;
+    	} catch (Exception ex) { ex.printStackTrace(); }
+    	return new TreeMap<Integer, Integer>(); 
+    }
+
+
+	/**
+	 * 
+	 * @param graph
+	 * @return
+	 */
+    public TreeMap<Integer, Integer> generateEdgeTypeMap() throws Exception {
     	
     	logger.info("Start generating the edgeIdMap.");
 
-        final int numVerts = graph.getVertices().toIntArray().length;
-        
-        final TreeMap<Integer, Integer> edgeNodeID = new TreeMap<>();
-        
-        int[] edges;
-        int edge, edgeID;
-        for (int v = 0; v < this.outEdge.length; v++) {
-        	edges = this.outEdge[v];
-        	for (int e = 0; e < edges.length; e++) {
-        		edge = edges[e];
-	        	edgeID = numVerts + edge;
-	        	
-	        	if (!edgeNodeID.containsKey(edge)) edgeNodeID.put(edge, edgeID);
-        }}
-        
-        logger.info("Finished generating the edgeIdMap.");
-        return edgeNodeID;
+    	try {
+			NumericalProperty edgeTypes = this.graph.getEdgeTypeProperty();
+	        
+	        final TreeMap<Integer, Integer> edgeTypeMap = new TreeMap<>();
+	        
+	        int[] edges;
+	        int edge; int tempCntr = 0;
+	        for (int v = 0; v < this.outEdge.length; v++) {
+	        	edges = this.outEdge[v];
+	        	for (int e = 0; e < edges.length; e++) {
+	        		edge = edges[e];	        	
+		        	if (!edgeTypeMap.containsKey(edge)) {
+		        		edgeTypeMap.put(edge, edgeTypes.getValueAsInt(edge));
+		        		tempCntr++;
+		        	}
+	        }}
+
+	        System.out.println("added "+tempCntr + " edges to the generateEdgeTypeMap");
+	        logger.info("Finished generating the edgeIdMap.");
+	        return edgeTypeMap;
+    	} catch (Exception ex) { ex.printStackTrace(); }
+    	return new TreeMap<Integer, Integer>(); 
+    }
+    
+    /**
+	 * 
+	 * @param graph
+	 * @return
+	 */
+    public TreeMap<Integer, Integer> generateEdgeIdTypeMap() {
+    	
+    	logger.info("Start generating the edgeIdMap.");
+    	try {
+			NumericalProperty edgeTypes = this.graph.getEdgeTypeProperty();
+	        final TreeMap<Integer, Integer> edgeTypeMap = new TreeMap<Integer, Integer>();
+	        
+	        int[] edges;
+	        int edgeID; int tempCntr = 0;
+	        for (int v = 0; v < this.outEdge.length; v++) {
+	        	edges = this.outEdge[v];
+	        	for (int e = 0; e < edges.length; e++) {
+	        		edgeID = this.edgeIdMap.get(edges[e]);	        	
+		        	if (!edgeTypeMap.containsKey(edgeID)) {
+		        		edgeTypeMap.put(edgeID, edgeTypes.getValueAsInt(edgeID));
+		        		tempCntr++;
+		        	}
+	        }}
+
+	        System.out.println("added "+tempCntr + " edges to the generateEdgeIdTypeMap");
+	        logger.info("Finished generating the edgeIdMap.");
+	        return edgeTypeMap;
+    	} catch (Exception ex) { ex.printStackTrace(); }
+    	return new TreeMap<Integer, Integer>(); 
+    }
+    
+    private int[] generateIdArray(final boolean[] bcaNodes, final TreeMap<Integer, Integer> edgeIdTypeMap) {
+    	
+    	logger.info("Start generating id-array of both nodes and edges.");
+    	try {
+	    	int[] array = new int[edgeIdTypeMap.size()+bcaNodes.length];
+	    	int j = 0;
+	    	for (int i = 0; i < bcaNodes.length; i++) {
+	    		if (bcaNodes[i]) { array[j] = i; j++; }
+	    	}
+	    	int i = 0;
+	    	while (i < edgeIdTypeMap.size()) {
+	    		for (Map.Entry entry : edgeIdTypeMap.entrySet()) {
+	    			array[j] = (int) entry.getValue();
+	    			i++; j++;
+	    		}
+	    	}
+	    	logger.info("Generated id-array of both nodes and edges.");
+	    	return array;
+    	} catch (Exception ex) { ex.printStackTrace(); }
+    	return new int[0]; 
     }
     
 

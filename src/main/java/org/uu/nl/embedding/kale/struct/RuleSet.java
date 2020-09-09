@@ -195,12 +195,12 @@ public class RuleSet {
 				}
 				
 				int iFstHead = Integer.parseInt(tokens[0]);
-				int iFstTail = Integer.parseInt(tokens[2]);
 				int iFstRelation = Integer.parseInt(tokens[1]);
+				int iFstTail = Integer.parseInt(tokens[2]);
 				/*
 				 * START TEMP
 				 */
-				if (counter == 0) System.out.println(iFstHead+" "+iFstTail+" "+iFstRelation);
+				if (counter == 0) System.out.println(iFstHead+" "+iFstRelation+" "+iFstTail);
 				/*
 				 * END TEMP
 				 */
@@ -213,15 +213,15 @@ public class RuleSet {
 				if (iFstRelation < 0) {
 					throw new Exception("Loading error in RuleSet: 1st relation ID out of range");
 				}
-				Triple fstTriple = new Triple(iFstHead, iFstTail, iFstRelation);
+				Triple fstTriple = new Triple(iFstHead, iFstRelation, iFstTail);
 				
 				int iSndHead = Integer.parseInt(tokens[3]);
-				int iSndTail = Integer.parseInt(tokens[5]);
 				int iSndRelation = Integer.parseInt(tokens[4]);
+				int iSndTail = Integer.parseInt(tokens[5]);
 				/*
 				 * START TEMP
 				 */
-				if (counter == 0) System.out.println(iSndHead+" "+iSndTail+" "+iSndRelation);
+				if (counter == 0) System.out.println(iSndHead+" "+iSndRelation+" "+iSndTail);
 				/*
 				 * END TEMP
 				 */
@@ -234,19 +234,19 @@ public class RuleSet {
 				if (iSndRelation < 0) {
 					throw new Exception("Loading error in RuleSet: 2nd relation ID out of range");
 				}
-				Triple sndTriple = new Triple(iSndHead, iSndTail, iSndRelation);
+				Triple sndTriple = new Triple(iSndHead, iSndRelation, iSndTail);
 				
 				if (tokens.length == 6){
 					pRule.add(new TripleRule(fstTriple, sndTriple));
 				}
 				else{
 					int iTrdHead = Integer.parseInt(tokens[7]);
-					int iTrdTail = Integer.parseInt(tokens[9]);
 					int iTrdRelation = Integer.parseInt(tokens[8]);
+					int iTrdTail = Integer.parseInt(tokens[9]);
 					/*
 					 * START TEMP
 					 */
-					if (counter == 0) System.out.println(iTrdHead+" "+iTrdTail+" "+iTrdRelation);
+					if (counter == 0) System.out.println(iTrdHead+" "+iTrdRelation+" "+iTrdTail);
 					/*
 					 * END TEMP
 					 */
@@ -275,20 +275,20 @@ public class RuleSet {
 		TreeMap<Double, TripleRule> tmpMap = new TreeMap<Double, TripleRule>();
 		for (int iID = 0; iID < iNumberOfRules; iID++) {
 			int m = pRule.get(iID).getFirstTriple().head();
-			int n = pRule.get(iID).getFirstTriple().tail();
 			int s = pRule.get(iID).getFirstTriple().relation();
-			Triple fstTriple = new Triple(m, n, s);
+			int n = pRule.get(iID).getFirstTriple().tail();
+			Triple fstTriple = new Triple(m, s, n);
 			int p = pRule.get(iID).getSecondTriple().head();
-			int q = pRule.get(iID).getSecondTriple().tail();
 			int t = pRule.get(iID).getSecondTriple().relation();
-			Triple sndTriple = new Triple(p, q, t);
+			int q = pRule.get(iID).getSecondTriple().tail();
+			Triple sndTriple = new Triple(p, t, q);
 			if(pRule.get(iID).getThirdTriple()==null) {
 				tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple));
 			}
 			else{
 				int a = pRule.get(iID).getThirdTriple().head();
-				int b = pRule.get(iID).getThirdTriple().tail();
-				int c = pRule.get(iID).getThirdTriple().relation();
+				int b = pRule.get(iID).getThirdTriple().relation();
+				int c = pRule.get(iID).getThirdTriple().tail();
 				Triple trdTriple = new Triple(a, b, c);
 				tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple, trdTriple));
 			}
@@ -300,20 +300,20 @@ public class RuleSet {
 			double dRand = iterValues.next();
 			TripleRule rule = tmpMap.get(dRand);
 			int m = rule.getFirstTriple().head();
-			int n = rule.getFirstTriple().tail();
 			int s = rule.getFirstTriple().relation();
-			Triple fstTriple = new Triple(m, n, s);
+			int n = rule.getFirstTriple().tail();
+			Triple fstTriple = new Triple(m, s, n);
 			int p = rule.getSecondTriple().head();
-			int q = rule.getSecondTriple().tail();
 			int t = rule.getSecondTriple().relation();
-			Triple sndTriple = new Triple(p, q, t);
+			int q = rule.getSecondTriple().tail();
+			Triple sndTriple = new Triple(p, t, q);
 			if(rule.getThirdTriple()==null) {
 				pRule.add(new TripleRule(fstTriple, sndTriple));
 			}
 			else{
 				int a = rule.getThirdTriple().head();
-				int b = rule.getThirdTriple().tail();
-				int c = rule.getThirdTriple().relation();
+				int b = rule.getThirdTriple().relation();
+				int c = rule.getThirdTriple().tail();
 				Triple trdTriple = new Triple(a, b, c);
 				pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple));
 			}

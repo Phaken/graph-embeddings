@@ -80,14 +80,14 @@ public class KaleVectorMatrix implements CoOccurrenceMatrix {
 			for (int c = 0; c < this.entityMatrix.columns(); c++) {
 				this.coOccurrenceIdx_I.add(r);
 				this.coOccurrenceIdx_J.add(c);
-				this.coOccurrenceValues.add((float)this.entityMatrix.get(r, c));
+				this.coOccurrenceValues.add((float)this.entityMatrix.getNeighbor(r, c));
 			}
 
 		for (int r = 0; r < this.relationMatrix.rows(); r++)
 			for (int c = 0; c < this.relationMatrix.columns(); c++) {
 				this.coOccurrenceIdx_I.add(r + this.vocabSize);
 				this.coOccurrenceIdx_J.add(c + this.vocabSize);
-				this.coOccurrenceValues.add((float)this.relationMatrix.get(r, c));
+				this.coOccurrenceValues.add((float)this.relationMatrix.getNeighbor(r, c));
 			}
 	}
 

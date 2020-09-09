@@ -26,10 +26,10 @@ public class NegativeTripleGenerator {
 		int iPosRelation = PositiveTriple.relation();
 		
 		int iNegHead = iPosHead;
-		Triple NegativeTriple = new Triple(iNegHead, iPosTail, iPosRelation);
+		Triple NegativeTriple = new Triple(iNegHead, iPosRelation, iPosTail);
 		while (iNegHead == iPosHead) {
 			iNegHead = (int)(Math.random() * iNumberOfEntities);
-			NegativeTriple = new Triple(iNegHead, iPosTail, iPosRelation);
+			NegativeTriple = new Triple(iNegHead, iPosRelation, iPosTail);
 		}
 		return NegativeTriple;
 	}
@@ -40,10 +40,10 @@ public class NegativeTripleGenerator {
 		int iPosRelation = PositiveTriple.relation();
 		
 		int iNegTail = iPosTail;
-		Triple NegativeTriple = new Triple(iPosHead, iNegTail, iPosRelation);
+		Triple NegativeTriple = new Triple(iPosHead, iPosRelation, iNegTail);
 		while (iNegTail == iPosTail) {
 			iNegTail = (int)(Math.random() * iNumberOfEntities);
-			NegativeTriple = new Triple(iPosHead, iNegTail, iPosRelation);
+			NegativeTriple = new Triple(iPosHead, iPosRelation, iNegTail);
 		}
 		return NegativeTriple;
 	}
@@ -54,10 +54,10 @@ public class NegativeTripleGenerator {
 		int iPosRelation = PositiveTriple.relation();
 		
 		int iNegRelation = iPosRelation;
-		Triple NegativeTriple = new Triple(iPosHead, iPosTail, iNegRelation);
+		Triple NegativeTriple = new Triple(iPosHead, iNegRelation, iPosTail);
 		while (iNegRelation == iPosRelation) {
 			iNegRelation = (int)(Math.random() * iNumberOfRelation);
-			NegativeTriple = new Triple(iPosHead, iPosTail, iNegRelation);
+			NegativeTriple = new Triple(iPosHead, iNegRelation, iPosTail);
 		}
 		return NegativeTriple;
 	}

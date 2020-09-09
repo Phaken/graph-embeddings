@@ -46,6 +46,7 @@ public class StochasticUpdater {
 			double inDelta,
 			double in_m_Weight,
 			final boolean isGlove) {
+		
 		lstPosTriples = inLstPosTriples;
 		lstHeadNegTriples = inLstHeadNegTriples;
 		lstTailNegTriples = inLstTailNegTriples;
@@ -69,7 +70,7 @@ public class StochasticUpdater {
 	 */
 	public void stochasticIteration() throws Exception {
 		if (this.isGlove) stochasticIterationGlove();
-		else stochasticIterationDefault();
+		//else stochasticIterationDefault();
 	}
 	
 	/**
@@ -167,7 +168,7 @@ public class StochasticUpdater {
 		this.MatrixR.normalizeByRow();
 	}
 	
-	public void stochasticIterationDefault() throws Exception {
+	/*public void stochasticIterationDefault() throws Exception {
 		MatrixEGradient.setToValue(0.0);
 		MatrixRGradient.setToValue(0.0);
 
@@ -237,5 +238,5 @@ public class StochasticUpdater {
 		}
 		MatrixE.normalizeByRow();
 		MatrixR.normalizeByRow();
-	}
+	}*/
 }

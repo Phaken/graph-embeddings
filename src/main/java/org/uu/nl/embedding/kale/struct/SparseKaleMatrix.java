@@ -20,7 +20,7 @@ import org.uu.nl.embedding.kale.util.StringSplitter;
  * (https://github.com/iieir-km/KALE/tree/817474edb0da54a76b562bed2328e96284557b87)
  * @author Euan Westenbroek
  */
-public class KaleMatrix {
+public class SparseKaleMatrix {
 
     private static Logger logger = Logger.getLogger("SparseKaleMatrix");
 	
@@ -32,7 +32,7 @@ public class KaleMatrix {
 	private HashMap<Integer, HashMap<Integer, Double>> rowMap;
 	private HashMap<Integer, HashMap<Integer, Double>> rowSumMap;
 	
-	public KaleMatrix(int iRows, int iColumns) {
+	public SparseKaleMatrix(int iRows, int iColumns) {
 
 		this.iNumberOfRows = iRows;
 		this.iNumberOfColumns = iColumns;
@@ -376,10 +376,6 @@ public class KaleMatrix {
 				rowSumMap.get((int) e1.getKey()).put((int) e2.getKey(), 0d);
 			}
 		}
-	}
-	
-	public boolean containsKey(final int key) {
-		return this.rowMap.containsKey(key);
 	}
 	
 	@Override

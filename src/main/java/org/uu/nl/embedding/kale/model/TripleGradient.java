@@ -30,6 +30,7 @@ public class TripleGradient {
 			KaleMatrix inMatrixRGradient,
 			double inDelta,
 			final boolean isGlove) {
+		
 		PosTriple = inPosTriple;
 		NegTriple = inNegTriple;
 		MatrixE = inMatrixE;
@@ -48,7 +49,7 @@ public class TripleGradient {
 	 */
 	public void calculateGradient() throws Exception {
 		if (this.isGlove) calculateGradientGlove(); // VERDER GAAN WAAR GEBLEVEN
-		else calculateGradientDefault();
+		//else calculateGradientDefault();
 	}
 	
 	public void calculateGradientGlove() throws Exception {
@@ -59,6 +60,8 @@ public class TripleGradient {
 		int iNegHead = this.NegTriple.head();
 		int iNegTail = this.NegTriple.tail();
 		int iNegRelation = this.NegTriple.relation();
+		System.out.println("iPosHead= " + iPosHead + ", iPosRelation= " + iPosRelation + ", iPosTail= " + iPosTail);
+		System.out.println("iNegHead= " + iNegHead + ", iNegRelation= " + iNegRelation + ", iNegTail= " + iNegTail);
 		
 		/*
 		 * From paper:
@@ -119,7 +122,7 @@ public class TripleGradient {
 		}
 	}
 	
-	public void calculateGradientDefault() throws Exception {
+	/*public void calculateGradientDefault() throws Exception {
 		int iNumberOfFactors = MatrixE.columns();
 		int iPosHead = PosTriple.head();
 		int iPosTail = PosTriple.tail();
@@ -169,5 +172,5 @@ public class TripleGradient {
 			}
 		}
 		
-	}
+	}*/
 }

@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.log4j.Logger;
@@ -31,6 +32,7 @@ public class DataGenerator {
 	private final int[][] outVerts;
 	private final int[][] inEdges;
 	private final int[][] outEdges;
+	private TreeMap<Integer, Integer> edgeIdMap;
 	
 	private double validationPercentage;
 	private double testingPercentage;
@@ -52,7 +54,8 @@ public class DataGenerator {
 	public DataGenerator(final InMemoryRdfGraph graph, final Configuration config, 
 							final boolean undirected,
 							final int[][] inVerts, final int[][] outVerts,
-							final int[][] inEdges, final int[][] outEdges) {
+							final int[][] inEdges, final int[][] outEdges,
+							final TreeMap<Integer, Integer> edgeIdMap) {
 		this.graph = graph;
 		this.config = config;
 		
@@ -60,6 +63,7 @@ public class DataGenerator {
 		this.outVerts = outVerts;
 		this.inEdges = inEdges;
 		this.outEdges = outEdges;
+		this.edgeIdMap = edgeIdMap;
 		
 		this.undirected = undirected;
 		
@@ -157,6 +161,7 @@ public class DataGenerator {
 	 * @throws Exception
 	 */
 	public void generateTrainingTriples() throws Exception {
+		logger.info("Generating Training Triples initiated.");
 		this.fnTrainingTriples = generateFileDir("training_triples");
 		//BufferedWriter writer = new BufferedWriter(new FileWriter(this.fnTrainingTriples));
 		
@@ -169,8 +174,8 @@ public class DataGenerator {
 			for (int i = 0; i < this.trainSet.length; i++) {
 				for (int j = 0; j < this.outVerts[this.trainSet[i]].length; j++) {
 					line = Integer.toString(this.trainSet[i]) + sep;
-					line += Integer.toString(this.outVerts[this.trainSet[i]][j]) + sep;
-					line += Integer.toString(this.outEdges[this.trainSet[i]][j]) + nl;
+					line += Integer.toString(this.edgeIdMap.get(this.outEdges[this.trainSet[i]][j])) + sep;
+					line += Integer.toString(this.outVerts[this.trainSet[i]][j]) + nl;
 					lines.add(line);
 				}
 				//writer.write(line);
@@ -183,8 +188,8 @@ public class DataGenerator {
 				for (int i = 0; i < this.trainSet.length; i++) {
 					for (int j = 0; j < this.inVerts[this.trainSet[i]].length; j++) {
 						line = Integer.toString(this.trainSet[i]) + sep;
-						line += Integer.toString(this.inVerts[this.trainSet[i]][j]) + sep;
-						line += Integer.toString(this.inEdges[this.trainSet[i]][j]) + nl;
+						line += Integer.toString(this.edgeIdMap.get(this.inEdges[this.trainSet[i]][j])) + sep;
+						line += Integer.toString(this.inVerts[this.trainSet[i]][j]) + nl;
 						lines.add(line);
 					}
 					//writer.write(line);
@@ -196,6 +201,7 @@ public class DataGenerator {
 		//writer.close();
 		KaleEmbeddingTextWriter kaleWriter = new KaleEmbeddingTextWriter(this.fnTrainingTriples, this.config);
 		kaleWriter.write(lines);
+		logger.info("Training Triples generated and written to file.");
 	}
 	
 	/**
@@ -207,22 +213,25 @@ public class DataGenerator {
 
 		ArrayList<String> lines = new ArrayList<String>();
 		String line = "";
+		int node;
 		try {
 			for (int i = 0; i < this.validSet.length; i++) {
+				node = this.validSet[i];
 				for (int j = 0; j < this.outVerts[this.validSet[i]].length; j++) {
-					line = Integer.toString(this.validSet[i]) + sep;
-					line += Integer.toString(this.outVerts[this.validSet[i]][j]) + sep;
-					line += Integer.toString(this.outEdges[this.validSet[i]][j]) + nl;
+					line = Integer.toString(node) + sep;
+					line += Integer.toString(this.edgeIdMap.get(this.outEdges[node][j])) + sep;
+					line += Integer.toString(this.outVerts[node][j]) + nl;
 					lines.add(line);
 				}
 			}
 			if (this.undirected) {
 				lines.add("#reversed direction" + nl);
 				for (int i = 0; i < this.validSet.length; i++) {
+					node = this.validSet[i];
 					for (int j = 0; j < this.inVerts[this.validSet[i]].length; j++) {
-						line = Integer.toString(this.validSet[i]) + sep;
-						line += Integer.toString(this.inVerts[this.validSet[i]][j]) + sep;
-						line += Integer.toString(this.inEdges[this.validSet[i]][j]) + nl;
+						line = Integer.toString(node) + sep;
+						line += Integer.toString(this.edgeIdMap.get(this.inEdges[node][j])) + sep;
+						line += Integer.toString(this.inVerts[node][j]) + nl;
 						lines.add(line);
 					}
 				}
@@ -246,8 +255,8 @@ public class DataGenerator {
 			for (int i = 0; i < this.testSet.length; i++) {
 				for (int j = 0; j < this.outVerts[this.testSet[i]].length; j++) {
 					line = Integer.toString(this.testSet[i]) + sep;
-					line += Integer.toString(this.outVerts[this.testSet[i]][j]) + sep;
-					line += Integer.toString(this.outEdges[this.testSet[i]][j]) + nl;
+					line += Integer.toString(this.edgeIdMap.get(this.outEdges[this.testSet[i]][j])) + sep;
+					line += Integer.toString(this.outVerts[this.testSet[i]][j]) + nl;
 					lines.add(line);
 				}
 			}
@@ -256,8 +265,8 @@ public class DataGenerator {
 				for (int i = 0; i < this.testSet.length; i++) {
 					for (int j = 0; j < this.inVerts[this.testSet[i]].length; j++) {
 						line = Integer.toString(this.testSet[i]) + sep;
-						line += Integer.toString(this.inVerts[this.testSet[i]][j]) + sep;
-						line += Integer.toString(this.inEdges[this.testSet[i]][j]) + nl;
+						line += Integer.toString(this.edgeIdMap.get(this.inEdges[this.testSet[i]][j])) + sep;
+						line += Integer.toString(this.inVerts[this.testSet[i]][j]) + nl;
 						lines.add(line);
 					}
 				}

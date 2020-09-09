@@ -3,6 +3,7 @@ package org.uu.nl.embedding.kale;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 import org.uu.nl.embedding.bca.BookmarkColoring;
@@ -25,6 +26,7 @@ public class KaleRunner {
 	private final int iNumRelations;
 	private final int iBcvSize;
 	private final HashSet<String> uniqueRelationTypes;
+	private final TreeMap<Integer, Integer> edgeTypeMap;
 	private final int iNumUniqueRelations;
 	
 	private int m_NumFactor = 20;
@@ -119,9 +121,10 @@ public class KaleRunner {
         logger.info("Finished generating kale BookmarkColoring.");
 		boolean undirected = true;
         logger.info("Starting dataGenerator.");
+        this.edgeTypeMap = BCA.generateEdgeTypeMap();
 		DataGenerator dataGenerator = new DataGenerator(graph, config, undirected,
 										BCA.getInVertices(), BCA.getOutVertices(),
-										BCA.getInEdges(), BCA.getOutEdges());
+										BCA.getInEdges(), BCA.getOutEdges(), BCA.edgeIdMap);
         logger.info("Finished dataGenerator.");
 		this.fileExtension = ".tsv";
 		dataGenerator.Initialize(this.FILEPATH, this.fileExtension, BCA);
@@ -145,7 +148,7 @@ public class KaleRunner {
 				this.fnTrainingRules,
 				this.fnGloveVectors,
 				this.graph, this.config,
-				true);
+				BCA.generateEdgeIdTypeMap());
         logger.info("Start training the Kale Model using Cochez method.");
 		this.kale.CochezLearn();
 	}

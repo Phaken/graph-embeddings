@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.uu.nl.embedding.kale.struct.KaleMatrix;
+import org.uu.nl.embedding.kale.struct.SparseKaleMatrix;
 import org.uu.nl.embedding.kale.struct.TripleSet;
 
 
@@ -239,7 +240,7 @@ public class MetricMonitor {
 			int iObjectID = lstValidateTriples.get(iID).tail();
 			double dTargetValue = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				dTargetValue -= Math.abs(MatrixE.get(iSubjectID, p) + MatrixR.get(iRelationID, p) - MatrixE.get(iObjectID, p));
+				dTargetValue -= Math.abs(MatrixE.getNeighbor(iSubjectID, p) + MatrixR.getNeighbor(iRelationID, p) - MatrixE.getNeighbor(iObjectID, p));
 			}
 			
 			int iLeftRank = 1;
@@ -249,7 +250,7 @@ public class MetricMonitor {
 				String negTriple = iLeftID + "\t" + iRelationID + "\t" +iObjectID;
 				if(!this.lstTriples.containsKey(negTriple)){
 					for (int p = 0; p < iNumberOfFactors; p++) {
-						dValue -= Math.abs(MatrixE.get(iLeftID, p) + MatrixR.get(iRelationID, p) - MatrixE.get(iObjectID, p));
+						dValue -= Math.abs(MatrixE.getNeighbor(iLeftID, p) + MatrixR.getNeighbor(iRelationID, p) - MatrixE.getNeighbor(iObjectID, p));
 					}
 					if (dValue > dTargetValue) {
 						iLeftRank++;
@@ -278,7 +279,7 @@ public class MetricMonitor {
 				String negTiple = iSubjectID + "\t" + iRelationID + "\t" +iRightID;
 				if(!lstTriples.containsKey(negTiple)){
 					for (int p = 0; p < iNumberOfFactors; p++) {
-						dValue -= Math.abs(MatrixE.get(iSubjectID, p) + MatrixR.get(iRelationID, p) - MatrixE.get(iRightID, p));
+						dValue -= Math.abs(MatrixE.getNeighbor(iSubjectID, p) + MatrixR.getNeighbor(iRelationID, p) - MatrixE.getNeighbor(iRightID, p));
 					}
 					if (dValue > dTargetValue) {
 						iRightRank++;

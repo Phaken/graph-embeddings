@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 
 import org.uu.nl.embedding.kale.struct.RuleSet;
 import org.uu.nl.embedding.kale.struct.Triple;
@@ -66,7 +67,8 @@ public class KaleModel {
 	private ArrayList<Float> coOccurrenceValues = null;
 	private ArrayList<Float> coOccurrenceGradient = null;
 	private HashMap<Integer, Integer> orderedIdxMap = null;
-	private int iFirstEdge;
+	private TreeMap<Integer, Integer> edgeIdTypeMap = null;
+	private ArrayList<Integer> iFirstEdges;
 	private int maxNeighbors;
 	
 	/**
@@ -185,7 +187,7 @@ public class KaleModel {
 			final String fnTrainingTriples, final String fnValidateTriples, final String fnTestingTriples,
 			final String fnTrainingRules, final String fnGloveVectors, 
 			final InMemoryRdfGraph graph, final Configuration config,
-			boolean alt) throws Exception {
+			final TreeMap<Integer, Integer> edgeIdTypeMap) throws Exception {
 		
 		logger.info("Start initializing KaleModel.");
 		
@@ -193,7 +195,9 @@ public class KaleModel {
 		this.m_NumEntity = iNumEntity;
 		this.iBcvSize = iBcvSize;
 		this.m_NumGloveVecs = m_NumUniqueRelation + iNumEntity;
+		this.edgeIdTypeMap = edgeIdTypeMap;
 		this.orderedIdxMap = new HashMap<Integer, Integer>();
+		this.iFirstEdges = new ArrayList<Integer>();
 		this.maxNeighbors = 0;
 		
 		if (fnGloveVectors != null) this.isGlove = true;
@@ -213,6 +217,14 @@ public class KaleModel {
 			logger.info("Initialize loading training and validation triples.");
 			this.m_TrainingTriples = new TripleSet(this.m_NumEntity, this.m_NumUniqueRelation);
 			this.m_ValidateTriples = new TripleSet(this.m_NumEntity, this.m_NumUniqueRelation);
+			/*
+			 * STARTTEMP
+			 */
+			m_TrainingTriples.setOutverts(graph.getOutNeighborhoods());
+			m_ValidateTriples.setOutverts(graph.getOutNeighborhoods());
+			/*
+			 * ENDTEMP
+			 */
 			this.m_Triples = new TripleSet();
 			this.m_TrainingTriples.load(fnTrainingTriples);
 			this.m_ValidateTriples.load(fnValidateTriples);
@@ -230,7 +242,6 @@ public class KaleModel {
 			ArrayList<FormulaSet> formulaSets = this.m_TrainingRules.getFormulaSets();
 			logger.info("Loading grounding rules successful.");		
 			
-			logger.info("Initializing matrix E and matrix R randomly.");
 			System.out.println("Entity Matrix size: " + (this.iBcvSize-this.m_NumUniqueRelation) + "x" + this.iBcvSize + "\n"
 					+ "Predicate Matrix size: " + (this.m_NumUniqueRelation) + "x" + this.iBcvSize + "\n");
 			this.m_Entity_Factor_MatrixE = new KaleMatrix((this.iBcvSize-this.m_NumUniqueRelation), this.iBcvSize);
@@ -246,6 +257,7 @@ public class KaleModel {
 				 */
 			}
 			else {
+				logger.info("Initializing matrix E and matrix R randomly.");
 				this.m_Entity_Factor_MatrixE.setToRandom();
 				this.m_Relation_Factor_MatrixR.setToRandom();
 				this.m_Entity_Factor_MatrixE.normalizeByRow();
@@ -296,7 +308,6 @@ public class KaleModel {
 			this.coOccurrenceIdx_I = new ArrayList<Integer>();
 			this.coOccurrenceIdx_J = new ArrayList<Integer>();
 			this.coOccurrenceValues = new ArrayList<Float>();
-			this.coOccurrenceGradient = new ArrayList<Float>();
 			
 			/*
 			 * FILE FORMAT:
@@ -311,6 +322,14 @@ public class KaleModel {
 			float value;
 			String[] strNeighbor = new String[2];
 			int vecCounter = 0, nodeCntr = 0;
+			/*
+			 * START TEMP
+			 */
+			System.out.println("edgeIdTypeMap.size()=" +edgeIdTypeMap.size());
+			System.out.println("edgeIdTypeMap.get(47028)=" +edgeIdTypeMap.get(47028));
+			/*
+			 * END TEMP
+			 */
 			while ((line = reader.readLine()) != null) {
 				
 				if ((line.contains("#")) || (line.toLowerCase().contains("method:")))
@@ -340,11 +359,17 @@ public class KaleModel {
 					if (neighborID < 0 /*|| neighborID >= this.m_NumGloveVecs*/) {
 						throw new Exception("Loading error in KaleModel.loadGloveVectors(): invalid neighborID.");
 					}
+					/*
+					 * START TEMP
+					 */
+					if (this.edgeIdTypeMap.containsKey(nodeID)) System.out.println("edge in map.");
+					/*
+					 * END TEMP
+					 */
 					this.coOccurrenceIdx_I.add(nodeID);
 					this.orderedIdxMap.put(nodeID, this.coOccurrenceIdx_I.size());
 					this.coOccurrenceIdx_J.add(neighborID);
 					this.coOccurrenceValues.add(value);
-					this.coOccurrenceGradient.add(0f);
 					this.maxNeighbors++;
 				}
 				vecCounter++;
@@ -369,6 +394,7 @@ public class KaleModel {
 	public KaleMatrix loadGloveEntityVectors() throws Exception {
 		//logger.info("WARNING: Wrong method used -> loadGloveEntityVectors()");
 		//System.out.println("this.orderedIdxMap.size(): " +this.orderedIdxMap.size());
+		logger.info("Start generating entity GloVe matrix.");
 		KaleMatrix kMatrix = new KaleMatrix(this.iBcvSize, this.iBcvSize);
 		
 		int nodeID, neighborID, matrixIdx_I;
@@ -376,22 +402,30 @@ public class KaleModel {
 		float value;
 		try {
 			// Get matrix values and add to KaleMatrix.
+			/*
+			 * Edges still have their 'nodeID' here.
+			 */
 			while (v < this.coOccurrenceIdx_I.size() && nodeCntr < this.iBcvSize) {
 				nodeID = this.coOccurrenceIdx_I.get(v);
 				neighborID = this.coOccurrenceIdx_J.get(v);
 				value = this.coOccurrenceValues.get(v);
 				
-				matrixIdx_I = this.orderedIdxMap.get(nodeID);
-				kMatrix.addValue(matrixIdx_I, neighborID, value);
-				
+				//matrixIdx_I = this.orderedIdxMap.get(nodeID);
+				//kMatrix.addValue(matrixIdx_I, neighborID, value);
+				if (!this.edgeIdTypeMap.containsKey(nodeID)) { 
+					kMatrix.addValue(nodeID, neighborID, value);
+					if (this.coOccurrenceIdx_I.get(v+1) != nodeID) nodeCntr++;
+				}
+				else { this.iFirstEdges.add(v); System.out.println("Edge found and added: " + v); }
 				v++;
 				// If next node is different than current node:
 				// increment node counter.
-				if (this.coOccurrenceIdx_I.get(v) != nodeID) nodeCntr++;
 			}
 		} catch (Exception ex) { ex.printStackTrace(); }
 		
-		this.iFirstEdge = v;
+		//System.out.println("loadGloveEntityVectors():\n" + kMatrix.toString());
+
+		logger.info("Finished generating entity GloVe matrix.");
 		return kMatrix;
 	}
 	
@@ -403,28 +437,40 @@ public class KaleModel {
 	 */
 	public KaleMatrix loadGloveRelationVectors() throws Exception {
 		//logger.info("WARNING: Wrong method used -> loadGloveRelationVectors()");
+		logger.info("Start generating edge GloVe matrix.");
 		KaleMatrix kMatrix = new KaleMatrix(this.m_NumUniqueRelation, this.iBcvSize);
 		
-		int e = this.iFirstEdge;
+		int e = 0, id;
 		int edgeID, neighborID;
-		int edgeCntr = 0;
 		float value;
 		try {
 			// Get matrix values and add to KaleMatrix.
-			while (e < this.coOccurrenceIdx_I.size() && edgeCntr < this.m_NumUniqueRelation) {
-				edgeID = this.coOccurrenceIdx_I.get(e);
-				neighborID = this.coOccurrenceIdx_J.get(e);
-				value = this.coOccurrenceValues.get(e);
+			/*
+			 * Edges still have their 'nodeID' here.
+			 */
+			while (e < this.iFirstEdges.size()) {
+				id = this.iFirstEdges.get(e);
+				
+				edgeID = this.coOccurrenceIdx_I.get(id);
+				neighborID = this.coOccurrenceIdx_J.get(id);
+				value = this.coOccurrenceValues.get(id);
+				
+				if (this.edgeIdTypeMap.containsKey(edgeID)) edgeID = this.edgeIdTypeMap.get(edgeID);
+				else throw new Exception("Wrong edgeID in loadGloveRelationVectors().");
 	
-				kMatrix.addValue(edgeCntr, neighborID, value);
+				kMatrix.addValue(edgeID, neighborID, value);
 				
 				e++;
 				// If next node is different than current node:
 				// increment node counter.
 				//if (!this.coOccurrenceIdx_I.contains(e) && (this.coOccurrenceIdx_I.get(e) != edgeID)) edgeCntr++;
-				if (this.coOccurrenceIdx_I.get(e) != edgeID) edgeCntr++;
+				//if (this.coOccurrenceIdx_I.get(e) != edgeID) edgeCntr++;
 			}
 		} catch (Exception ex) { ex.printStackTrace(); }
+		
+		System.out.println("loadGloveRelationVectors():\n" + kMatrix.toString());
+
+		logger.info("Finished generating edge GloVe matrix.");
 		return kMatrix;
 	}
 	
@@ -498,6 +544,9 @@ public class KaleModel {
 				// Loop through training triples and generate negative versions (alterations).
 				this.m_TrainingTriples.randomShuffle();
 				for (int iTriple = 0; iTriple < this.m_TrainingTriples.nTriples(); iTriple++) {
+					// Check if head is in entity matrix.
+					if (!this.m_Entity_Factor_MatrixE.containsKey(this.m_TrainingTriples.get(iTriple).head())) continue;
+					
 					// Get triple and generate negative alterations.
 					Triple PosTriple = this.m_TrainingTriples.get(iTriple);
 					NegativeTripleGenerator negTripGen = new NegativeTripleGenerator(
@@ -529,7 +578,9 @@ public class KaleModel {
 				
 				// Repeat above process for training rules.
 				// Loop through training rules and generate negative versions (alterations).
-				this.m_TrainingRules.randomShuffle();
+				/*
+				 * this.m_TrainingRules.randomShuffle();
+				 */
 				for (int iRule = 0; iRule < this.m_TrainingRules.rules(); iRule++) {
 					// Get triple and generate negative alterations.
 					TripleRule rule = this.m_TrainingRules.get(iRule);

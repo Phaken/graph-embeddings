@@ -28,10 +28,10 @@ public class NegativeRuleGenerator {
 			int iFstRelation = PositiveRule.getFirstTriple().relation();
 			
 			int iNegRelation = iSndRelation;
-			Triple sndTriple = new Triple(iSndHead, iSndTail, iNegRelation);
+			Triple sndTriple = new Triple(iSndHead, iNegRelation, iSndTail);
 			while (iNegRelation == iSndRelation || iNegRelation == iFstRelation) {
 				iNegRelation = (int)(Math.random() * iNumberOfRelations);
-				sndTriple = new Triple(iSndHead, iSndTail, iNegRelation);
+				sndTriple = new Triple(iSndHead, iNegRelation, iSndTail);
 			}
 			TripleRule NegativeRule = new TripleRule(fstTriple, sndTriple);
 			return NegativeRule;
@@ -65,10 +65,10 @@ public class NegativeRuleGenerator {
 		int iSndRelation = PositiveRule.getSecondTriple().relation();
 		
 		int iNegRelation = iFstRelation;
-		Triple fstTriple = new Triple(ifstHead, ifstTail, iNegRelation);
+		Triple fstTriple = new Triple(ifstHead, iNegRelation, ifstTail);
 		while (iNegRelation == iSndRelation || iNegRelation == iFstRelation) {
 			iNegRelation = (int)(Math.random() * iNumberOfRelations);
-			fstTriple = new Triple(ifstHead, ifstTail, iNegRelation);
+			fstTriple = new Triple(ifstHead, iNegRelation, ifstTail);
 		}
 		TripleRule NegativeRule = new TripleRule(fstTriple, sndTriple);
 		return NegativeRule;
