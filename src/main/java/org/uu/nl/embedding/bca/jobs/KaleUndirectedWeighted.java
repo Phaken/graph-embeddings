@@ -32,6 +32,12 @@ public class KaleUndirectedWeighted extends BCAJobStable {
 						int[][] vertexIn, int[][] vertexOut,
 						int[][] edgeIn, int[][] edgeOut) {
 		super(bookmark, true, alpha, epsilon, graph, vertexOut, vertexIn, edgeOut, edgeIn);
+
+		logger.info("DOWORK() WERKT NOG NIET JUIST!!!!!!!!");
+		/*
+		 * doWork() gaat ervan uit dat alles een normale node is en pakt daarvan dus de neighbors en edges
+		 * ==> Dit werkt dus uiteraard niet, maar hoe oplossen????
+		 */
 		fillMaps();
 	}
 
@@ -54,16 +60,17 @@ public class KaleUndirectedWeighted extends BCAJobStable {
      * @return
      * @author Euan Westenbroek
      */
-    public BCV doWork(final InMemoryRdfGraph graph, final boolean reverse) throws Exception {
-        if(reverse) throw new UnsupportedOperationException("No reverse mode in undirected version");
+	@Override
+    public BCV doWork(final boolean reverse) throws Exception {
     	try {
 	        BCV bcv;
-	        if (this.bookmark < this.numVerts) bcv = doWorkNodes(reverse);
-	        else bcv = doWorkEdges(reverse);
-	
+
 	        final NumericalProperty edgeWeights = graph.getEdgeWeightProperty();
 	        final int[] allVerts = graph.getVertices().toIntArray();
 	        this.numVerts = allVerts.length;
+	        
+	        if (this.bookmark < this.numVerts) bcv = doWorkNodes(reverse);
+	        else bcv = doWorkEdges(reverse);
 	
 	        final TreeMap<Integer, Integer> edgeNodeID = new TreeMap<>();
 	        final TreeMap<Integer, Integer> edgeCntTree = new TreeMap<>();
@@ -76,29 +83,31 @@ public class KaleUndirectedWeighted extends BCAJobStable {
 	        ArrayList<Integer> vertList;
 	
 	        // Fill all maps for edges.
-	        for (Map.Entry<Integer, Float> entry : bcv.entrySet()) {
-	        	int edge;
-	        	focusNode = entry.getKey();
-	        	edges = this.edgeOut[focusNode];
-	        	for (int neighbor = 0; neighbor < edges.length; neighbor++) {
-		        	edge = edges[neighbor];
-		        	edgeID = this.numVerts + edge;
-		        	
-		        	if (!edgeNodeID.containsKey(edge)) edgeNodeID.put(edge, edgeID);
-		        	
-		        	if (!edgeCntTree.containsKey(edgeID)) edgeCntTree.put(edgeID, 1);
-		        	else { edgeCntTree.put(edgeID, edgeCntTree.get(edgeID)+1); }
-		        	
-		        	weight = (double)edgeWeights.getValueAsFloat(this.edgeOut[focusNode][neighbor]);
-		        	sumOfWeights += weight;
-		        	if (!edgeTotalWeights.containsKey(edgeID)) edgeTotalWeights.put(edgeID, weight);
-		        	else { edgeTotalWeights.put(edgeID, edgeTotalWeights.get(edgeID) + weight); }
-		        	
-		        	if (!outEdgeOf.containsKey(focusNode)) { vertList = new ArrayList<Integer>(); }
-		        	else { vertList = outEdgeOf.get(edgeID); }
-	        		vertList.add(focusNode);
-	        		outEdgeOf.put(edgeID, vertList);
-	        	}
+	        if (bcv.getRootNode() < this.numVerts) {
+		        for (Map.Entry<Integer, Float> entry : bcv.entrySet()) {
+		        	int edge;
+		        	focusNode = entry.getKey();
+		        	edges = this.edgeOut[focusNode];
+		        	for (int neighbor = 0; neighbor < edges.length; neighbor++) {
+			        	edge = edges[neighbor];
+			        	edgeID = this.numVerts + edge;
+			        	
+			        	if (!edgeNodeID.containsKey(edge)) edgeNodeID.put(edge, edgeID);
+			        	
+			        	if (!edgeCntTree.containsKey(edgeID)) edgeCntTree.put(edgeID, 1);
+			        	else { edgeCntTree.put(edgeID, edgeCntTree.get(edgeID)+1); }
+			        	
+			        	weight = (double)edgeWeights.getValueAsFloat(this.edgeOut[focusNode][neighbor]);
+			        	sumOfWeights += weight;
+			        	if (!edgeTotalWeights.containsKey(edgeID)) edgeTotalWeights.put(edgeID, weight);
+			        	else { edgeTotalWeights.put(edgeID, edgeTotalWeights.get(edgeID) + weight); }
+			        	
+			        	if (!outEdgeOf.containsKey(focusNode)) { vertList = new ArrayList<Integer>(); }
+			        	else { vertList = outEdgeOf.get(edgeID); }
+		        		vertList.add(focusNode);
+		        		outEdgeOf.put(edgeID, vertList);
+		        	}
+		        }
 	        }
 	        
 	        PaintedNode pEdge;
@@ -173,7 +182,7 @@ public class KaleUndirectedWeighted extends BCAJobStable {
         return new BCV(-1);
     }
 
-	protected BCV doWorkNodes(final boolean reverse) {
+	protected BCV doWorkNodes(final boolean reverse) throws Exception {
 		
 		try {
 			final TreeMap<Integer, PaintedNode> nodeTree = new TreeMap<>();
@@ -222,8 +231,7 @@ public class KaleUndirectedWeighted extends BCAJobStable {
         return new BCV(-1);
 	}
 	
-	protected BCV doWorkEdges(final boolean reverse) {
-		logger.info("Started doWorkEdges()");
+	protected BCV doWorkEdges(final boolean reverse) throws Exception {
 		try {
 			final TreeMap<Integer, PaintedNode> nodeTree = new TreeMap<>();
 			final BCV bcv = new BCV(this.bookmark);

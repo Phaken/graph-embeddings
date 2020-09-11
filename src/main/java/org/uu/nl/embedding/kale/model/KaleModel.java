@@ -62,9 +62,14 @@ public class KaleModel {
 	public double m_Weight = 0.01;
 	
 	public boolean isGlove;
+	private int dictSize;
 	private ArrayList<Integer> coOccurrenceIdx_I = null;
 	private ArrayList<Integer> coOccurrenceIdx_J = null;
 	private ArrayList<Float> coOccurrenceValues = null;
+	private ArrayList<Integer> coOccurrenceIdx_I_edges = null;
+	private ArrayList<Integer> coOccurrenceIdx_J_edges = null;
+	private ArrayList<Float> coOccurrenceValues_edges = null;
+	
 	private ArrayList<Float> coOccurrenceGradient = null;
 	private HashMap<Integer, Integer> orderedIdxMap = null;
 	private TreeMap<Integer, Integer> edgeIdTypeMap = null;
@@ -79,7 +84,8 @@ public class KaleModel {
 	java.text.DecimalFormat decimalFormat = new java.text.DecimalFormat("#.######");
     private final static Logger logger = Logger.getLogger("KaleModel");
 	
-	public KaleModel() {
+	public KaleModel(final int dictSize) {
+		this.dictSize = dictSize;
 	}
 	
 	/**
@@ -95,7 +101,7 @@ public class KaleModel {
 	 */
 	public void Initialization(final int m_NumUniqueRelation, final int iNumEntity, final int iBcvSize,
 			final String fnTrainingTriples, final String fnValidateTriples, final String fnTestingTriples,
-			final String fnTrainingRules, final String fnGloveVectors, 
+			final String fnTrainingRules, final String fnGloveVectors, final String fnGloveVectorsEdgeTypes,
 			final InMemoryRdfGraph graph, final Configuration config) throws Exception {
 		
 		logger.info("Start initializing KaleModel.");
@@ -144,10 +150,10 @@ public class KaleModel {
 			logger.info("Initializing matrix E and matrix R randomly.");
 			/*System.out.println("Entity Matrix size: " + (this.iBcvSize-this.m_NumUniqueRelation) + "x" + this.iBcvSize + "\n"
 					+ "Predicate Matrix size: " + (this.m_NumUniqueRelation) + "x" + this.iBcvSize + "\n");*/
-			this.m_Entity_Factor_MatrixE = new KaleMatrix(this.m_NumEntity, this.iBcvSize);
-			this.m_Relation_Factor_MatrixR = new KaleMatrix(this.m_NumUniqueRelation, this.iBcvSize);
+			this.m_Entity_Factor_MatrixE = new KaleMatrix(this.m_NumEntity, this.iBcvSize, this.dictSize);
+			this.m_Relation_Factor_MatrixR = new KaleMatrix(this.m_NumUniqueRelation, this.iBcvSize, this.dictSize);
 			if (this.isGlove)  {
-				loadGloveVectors(fnGloveVectors);
+				loadGloveVectors(fnGloveVectors, fnGloveVectorsEdgeTypes);
 				this.m_Entity_Factor_MatrixE = loadGloveEntityVectors();
 				this.m_Relation_Factor_MatrixR = loadGloveRelationVectors();
 				/*
@@ -165,8 +171,8 @@ public class KaleModel {
 			logger.info("Initializion matrix E and matrix R successful.");
 
 			logger.info("Initializing gradients of matrix E and matrix R.");
-			this.m_MatrixEGradient = new KaleMatrix(this.m_Entity_Factor_MatrixE.rows(), this.m_Entity_Factor_MatrixE.columns());
-			this.m_MatrixRGradient = new KaleMatrix(this.m_Relation_Factor_MatrixR.rows(), this.m_Relation_Factor_MatrixR.columns());
+			this.m_MatrixEGradient = new KaleMatrix(this.m_Entity_Factor_MatrixE.rows(), this.m_Entity_Factor_MatrixE.columns(), this.dictSize);
+			this.m_MatrixRGradient = new KaleMatrix(this.m_Relation_Factor_MatrixR.rows(), this.m_Relation_Factor_MatrixR.columns(), this.dictSize);
 			logger.info("Initialization gradients of matrix E and matrix R successfull.");
 			logger.info("Model initialization successful.");
 		} catch (Exception ex) { ex.printStackTrace(); }
@@ -186,6 +192,7 @@ public class KaleModel {
 	public void Initialization(final int m_NumUniqueRelation, final int iNumEntity, final int iBcvSize,
 			final String fnTrainingTriples, final String fnValidateTriples, final String fnTestingTriples,
 			final String fnTrainingRules, final String fnGloveVectors, 
+			final String fnGloveVectorsEdgeTypes,
 			final InMemoryRdfGraph graph, final Configuration config,
 			final TreeMap<Integer, Integer> edgeIdTypeMap) throws Exception {
 		
@@ -244,10 +251,10 @@ public class KaleModel {
 			
 			System.out.println("Entity Matrix size: " + (this.iBcvSize-this.m_NumUniqueRelation) + "x" + this.iBcvSize + "\n"
 					+ "Predicate Matrix size: " + (this.m_NumUniqueRelation) + "x" + this.iBcvSize + "\n");
-			this.m_Entity_Factor_MatrixE = new KaleMatrix((this.iBcvSize-this.m_NumUniqueRelation), this.iBcvSize);
-			this.m_Relation_Factor_MatrixR = new KaleMatrix(this.m_NumUniqueRelation, this.iBcvSize);
+			this.m_Entity_Factor_MatrixE = new KaleMatrix((this.iBcvSize-this.m_NumUniqueRelation), this.iBcvSize, this.dictSize);
+			this.m_Relation_Factor_MatrixR = new KaleMatrix(this.m_NumUniqueRelation, this.iBcvSize, this.dictSize);
 			if (this.isGlove)  {
-				loadGloveVectors(fnGloveVectors);
+				loadGloveVectors(fnGloveVectors, fnGloveVectorsEdgeTypes);
 				this.m_Entity_Factor_MatrixE = loadGloveEntityVectors();
 				this.m_Relation_Factor_MatrixR = loadGloveRelationVectors();
 				/*
@@ -266,8 +273,8 @@ public class KaleModel {
 			logger.info("Initializion matrix E and matrix R successful.");
 
 			logger.info("Initializing gradients of matrix E and matrix R.");
-			this.m_MatrixEGradient = new KaleMatrix(this.m_Entity_Factor_MatrixE.rows(), this.m_Entity_Factor_MatrixE.columns());
-			this.m_MatrixRGradient = new KaleMatrix(this.m_Relation_Factor_MatrixR.rows(), this.m_Relation_Factor_MatrixR.columns());
+			this.m_MatrixEGradient = new KaleMatrix(this.m_Entity_Factor_MatrixE.rows(), this.m_Entity_Factor_MatrixE.columns(), this.dictSize);
+			this.m_MatrixRGradient = new KaleMatrix(this.m_Relation_Factor_MatrixR.rows(), this.m_Relation_Factor_MatrixR.columns(), this.dictSize);
 			logger.info("Initialization gradients of matrix E and matrix R successfull.");
 			logger.info("Model initialization successful.");
 		} catch (Exception ex) { ex.printStackTrace(); }
@@ -275,7 +282,7 @@ public class KaleModel {
 	
 	public void Initialization(String strNumRelation, String strNumEntity, String strIBcvSize,
 			String fnTrainingTriples, String fnValidateTriples, String fnTestingTriples,
-			String fnTrainingRules, final String fnGloveVectors, 
+			String fnTrainingRules, final String fnGloveVectors, final String fnGloveVectorsEdgeTypes,
 			final InMemoryRdfGraph graph, final Configuration config) throws Exception {
 		
 		m_NumUniqueRelation = Integer.parseInt(strNumRelation);
@@ -290,6 +297,7 @@ public class KaleModel {
 				fnTestingTriples, 
 				fnTrainingRules,
 				fnGloveVectors,
+				fnGloveVectorsEdgeTypes,
 				graph,
 				config); 
 	}
@@ -300,89 +308,103 @@ public class KaleModel {
 	 * @throws Exception
 	 * @author Euan Westenbroek
 	 */
-	public void loadGloveVectors(final String fnGloveVectors) throws Exception {
+	private void loadGloveVectors(final String fnGloveVectors, final String fnGloveVectorsEdgeTypes) throws Exception {
+		logger.info("Starting loadGloveVectors() method.");
 		
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-				new FileInputStream(fnGloveVectors), "UTF-8"));) {
-			// Initialize matrix.
-			this.coOccurrenceIdx_I = new ArrayList<Integer>();
-			this.coOccurrenceIdx_J = new ArrayList<Integer>();
-			this.coOccurrenceValues = new ArrayList<Float>();
-			
-			/*
-			 * FILE FORMAT:
-			 * 
-			 * line1 <- [NEIGHBORS nodeID1 neighborID1 neighborID2 ... neighborIDn]
-			 * line2 <- [VALUES nodeID1 value1 value2 ... value_n]
-			 * ...
-			 */
-			
-			String line = "";
-			int nodeID, neighborID;
-			float value;
-			String[] strNeighbor = new String[2];
-			int vecCounter = 0, nodeCntr = 0;
-			/*
-			 * START TEMP
-			 */
-			System.out.println("edgeIdTypeMap.size()=" +edgeIdTypeMap.size());
-			System.out.println("edgeIdTypeMap.get(47028)=" +edgeIdTypeMap.get(47028));
-			/*
-			 * END TEMP
-			 */
-			while ((line = reader.readLine()) != null) {
+		String[] files = new String[] { fnGloveVectors, fnGloveVectorsEdgeTypes };
+		for (int f = 0; f < 2; f++) {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+					new FileInputStream(fnGloveVectors), "UTF-8"));) {
+				// Initialize matrix.
+				ArrayList<Integer> coOccurrenceIdx_I = new ArrayList<Integer>();
+				ArrayList<Integer> coOccurrenceIdx_J = new ArrayList<Integer>();
+				ArrayList<Float> coOccurrenceValues = new ArrayList<Float>();
 				
-				if ((line.contains("#")) || (line.toLowerCase().contains("method:")))
-					{ /*System.out.println(line);*/ continue; }
-				
-				String[] tokens = line.split("\t");
 				/*
-				String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
-						.split("\t ", line));
-				String temp = "";
-				for(String token : tokens) temp += "token: " + token + " ";
-				System.out.println("tokens: " + temp);*/
+				 * FILE FORMAT:
+				 * 
+				 * line1 <- [NEIGHBORS nodeID1 neighborID1 neighborID2 ... neighborIDn]
+				 * line2 <- [VALUES nodeID1 value1 value2 ... value_n]
+				 * ...
+				 */
 				
-
-				// Parse nodeID and check.
-				nodeID = Integer.parseInt(tokens[0].split(":")[0].trim());
-				if (nodeID < 0 /*|| nodeID >= this.m_NumGloveVecs*/) {
-					throw new Exception("Loading error in KaleModel.loadGloveVectors(): invalid nodeID.");
-				}
-				// Add current nodeID and each neighbor to matrix.
-				for (int col = 1; col < tokens.length; col++) {
-					if (tokens[col] == null || tokens[col].equals("")) continue;
+				String line = "";
+				int nodeID, neighborID;
+				float value;
+				String[] strNeighbor = new String[2];
+				int vecCounter = 0, nodeCntr = 0;
+				/*
+				 * START TEMP
+				 */
+				System.out.println("edgeIdTypeMap.size()=" +edgeIdTypeMap.size());
+				System.out.println("edgeIdTypeMap.get(47028)=" +edgeIdTypeMap.get(47028));
+				/*
+				 * END TEMP
+				 */
+				while ((line = reader.readLine()) != null) {
 					
-					strNeighbor = tokens[col].split(":");
-					neighborID = Integer.parseInt(strNeighbor[0].trim());
-					value = Float.parseFloat(strNeighbor[1].trim());
-					if (neighborID < 0 /*|| neighborID >= this.m_NumGloveVecs*/) {
-						throw new Exception("Loading error in KaleModel.loadGloveVectors(): invalid neighborID.");
+					if ((line.contains("#")) || (line.toLowerCase().contains("method:")))
+						{ /*System.out.println(line);*/ continue; }
+					
+					String[] tokens = line.split("\t");
+					/*
+					String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
+							.split("\t ", line));
+					String temp = "";
+					for(String token : tokens) temp += "token: " + token + " ";
+					System.out.println("tokens: " + temp);*/
+					
+	
+					// Parse nodeID and check.
+					nodeID = Integer.parseInt(tokens[0].split(":")[0].trim());
+					if (nodeID < 0 /*|| nodeID >= this.m_NumGloveVecs*/) {
+						throw new Exception("Loading error in KaleModel.loadGloveVectors(): invalid nodeID.");
 					}
-					/*
-					 * START TEMP
-					 */
-					if (this.edgeIdTypeMap.containsKey(nodeID)) System.out.println("edge in map.");
-					/*
-					 * END TEMP
-					 */
-					this.coOccurrenceIdx_I.add(nodeID);
-					this.orderedIdxMap.put(nodeID, this.coOccurrenceIdx_I.size());
-					this.coOccurrenceIdx_J.add(neighborID);
-					this.coOccurrenceValues.add(value);
-					this.maxNeighbors++;
+					// Add current nodeID and each neighbor to matrix.
+					for (int col = 1; col < tokens.length; col++) {
+						if (tokens[col] == null || tokens[col].equals("")) continue;
+						
+						strNeighbor = tokens[col].split(":");
+						neighborID = Integer.parseInt(strNeighbor[0].trim());
+						value = Float.parseFloat(strNeighbor[1].trim());
+						if (neighborID < 0 /*|| neighborID >= this.m_NumGloveVecs*/) {
+							throw new Exception("Loading error in KaleModel.loadGloveVectors(): invalid neighborID.");
+						}
+						/*
+						 * START TEMP
+						 */
+						if (this.edgeIdTypeMap.containsKey(nodeID)) System.out.println("edge in map.");
+						/*
+						 * END TEMP
+						 */
+						coOccurrenceIdx_I.add(nodeID);
+						this.orderedIdxMap.put(nodeID, this.coOccurrenceIdx_I.size());
+						coOccurrenceIdx_J.add(neighborID);
+						coOccurrenceValues.add(value);
+						this.maxNeighbors++;
+					}
+					vecCounter++;
 				}
-				vecCounter++;
-			}
-			
-			// Check if number of vectors adds up.
-			/*if (vecCounter != this.m_NumGloveVecs) {
-				throw new Exception("Loading error in KaleModel.loadGloveVectors(): vecCounter does not match expected number of vectors.\n"
-						+ "Expected: " + this.m_NumGloveVecs + ", but received: " + vecCounter);
-			}*/
-			
-			reader.close();
-		} catch (Exception ex) { ex.printStackTrace(); }
+				
+				// Check if number of vectors adds up.
+				/*if (vecCounter != this.m_NumGloveVecs) {
+					throw new Exception("Loading error in KaleModel.loadGloveVectors(): vecCounter does not match expected number of vectors.\n"
+							+ "Expected: " + this.m_NumGloveVecs + ", but received: " + vecCounter);
+				}*/
+
+				if (f == 0) {
+					this.coOccurrenceIdx_I = new ArrayList<Integer>(coOccurrenceIdx_I);
+					this.coOccurrenceIdx_J = new ArrayList<Integer>(coOccurrenceIdx_J);
+					this.coOccurrenceValues = new ArrayList<Float>(coOccurrenceValues);
+				} else if (f == 1) {
+					this.coOccurrenceIdx_I_edges = new ArrayList<Integer>(coOccurrenceIdx_I);
+					this.coOccurrenceIdx_J_edges = new ArrayList<Integer>(coOccurrenceIdx_J);
+					this.coOccurrenceValues_edges = new ArrayList<Float>(coOccurrenceValues);
+				}
+				reader.close();
+				logger.info("Finished loadGloveVectors() method.");
+			} catch (Exception ex) { ex.printStackTrace(); }
+		}
 	}
 
 	/**
@@ -395,7 +417,7 @@ public class KaleModel {
 		//logger.info("WARNING: Wrong method used -> loadGloveEntityVectors()");
 		//System.out.println("this.orderedIdxMap.size(): " +this.orderedIdxMap.size());
 		logger.info("Start generating entity GloVe matrix.");
-		KaleMatrix kMatrix = new KaleMatrix(this.iBcvSize, this.iBcvSize);
+		KaleMatrix kMatrix = new KaleMatrix(this.iBcvSize, this.iBcvSize, this.dictSize);
 		
 		int nodeID, neighborID, matrixIdx_I;
 		int v = 0, nodeCntr = 0;
@@ -438,9 +460,9 @@ public class KaleModel {
 	public KaleMatrix loadGloveRelationVectors() throws Exception {
 		//logger.info("WARNING: Wrong method used -> loadGloveRelationVectors()");
 		logger.info("Start generating edge GloVe matrix.");
-		KaleMatrix kMatrix = new KaleMatrix(this.m_NumUniqueRelation, this.iBcvSize);
+		KaleMatrix kMatrix = new KaleMatrix(this.m_NumUniqueRelation, this.iBcvSize, this.dictSize);
 		
-		int e = 0, id;
+		int e = 0;
 		int edgeID, neighborID;
 		float value;
 		try {
@@ -448,15 +470,14 @@ public class KaleModel {
 			/*
 			 * Edges still have their 'nodeID' here.
 			 */
-			while (e < this.iFirstEdges.size()) {
-				id = this.iFirstEdges.get(e);
+			while (e < this.coOccurrenceIdx_I_edges.size()) {
 				
-				edgeID = this.coOccurrenceIdx_I.get(id);
-				neighborID = this.coOccurrenceIdx_J.get(id);
-				value = this.coOccurrenceValues.get(id);
+				edgeID = this.coOccurrenceIdx_I_edges.get(e);
+				neighborID = this.coOccurrenceIdx_J_edges.get(e);
+				value = this.coOccurrenceValues_edges.get(e);
 				
-				if (this.edgeIdTypeMap.containsKey(edgeID)) edgeID = this.edgeIdTypeMap.get(edgeID);
-				else throw new Exception("Wrong edgeID in loadGloveRelationVectors().");
+				//if (this.edgeIdTypeMap.containsKey(edgeID)) edgeID = this.edgeIdTypeMap.get(edgeID);
+				//else throw new Exception("Wrong edgeID in loadGloveRelationVectors().");
 	
 				kMatrix.addValue(edgeID, neighborID, value);
 				

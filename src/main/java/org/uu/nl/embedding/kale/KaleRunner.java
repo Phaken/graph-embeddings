@@ -24,6 +24,7 @@ public class KaleRunner {
 	private final Configuration config;
 	private final int iNumEntities;
 	private final int iNumRelations;
+	private final int dictSize;
 	private final int iBcvSize;
 	private final HashSet<String> uniqueRelationTypes;
 	private final TreeMap<Integer, Integer> edgeTypeMap;
@@ -47,6 +48,7 @@ public class KaleRunner {
 	private String fnTestingTriples;
 	private String fnTrainingRules;
 	private String fnGloveVectors;
+	private String fnGloveVectorsEdgeTypes;
 	
 	/**
 	 * 
@@ -64,6 +66,7 @@ public class KaleRunner {
         logger.info("Vertices succesfully loaded: " +verts.length+ " in total.");
 		final int[] edges = graph.getEdges().toIntArray();
         logger.info("Edges succesfully loaded: " +edges.length+ " in total.");
+        this.dictSize = verts.length + edges.length;
 		this.uniqueRelationTypes = new HashSet<String>();
 
 		//System.out.println("Predicate number #51808 is: " + graph.getEdgeLabelProperty().getValueAsString(edges[51808]).toLowerCase());
@@ -122,9 +125,8 @@ public class KaleRunner {
 		boolean undirected = true;
         logger.info("Starting dataGenerator.");
         this.edgeTypeMap = BCA.generateEdgeTypeMap();
-		DataGenerator dataGenerator = new DataGenerator(graph, config, undirected,
-										BCA.getInVertices(), BCA.getOutVertices(),
-										BCA.getInEdges(), BCA.getOutEdges(), BCA.edgeIdMap);
+		DataGenerator dataGenerator = new DataGenerator(graph, config, undirected, BCA);
+		
         logger.info("Finished dataGenerator.");
 		this.fileExtension = ".tsv";
 		dataGenerator.Initialize(this.FILEPATH, this.fileExtension, BCA);
@@ -136,9 +138,10 @@ public class KaleRunner {
 		this.fnTestingTriples = dataGenerator.fnTestingTriples;
 		this.fnTrainingRules = dataGenerator.fnTrainingRules;
 		this.fnGloveVectors = dataGenerator.fnGloveVectors;
+		this.fnGloveVectorsEdgeTypes = dataGenerator.fnGloveVectorsEdgeTypes;
 
         logger.info("Creating Kale Model and initializing it.");
-		this.kale = new KaleModel();
+		this.kale = new KaleModel(this.dictSize);
 		this.kale.Initialization(this.iNumUniqueRelations, 
 				this.iNumEntities,
 				this.iBcvSize,
@@ -147,6 +150,7 @@ public class KaleRunner {
 				this.fnTestingTriples, 
 				this.fnTrainingRules,
 				this.fnGloveVectors,
+				this.fnGloveVectorsEdgeTypes,
 				this.graph, this.config,
 				BCA.generateEdgeIdTypeMap());
         logger.info("Start training the Kale Model using Cochez method.");

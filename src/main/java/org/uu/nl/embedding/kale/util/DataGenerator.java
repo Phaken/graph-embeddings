@@ -32,6 +32,8 @@ public class DataGenerator {
 	private final int[][] outVerts;
 	private final int[][] inEdges;
 	private final int[][] outEdges;
+	private final int[][] allOutVecs;
+	private final int[][] allInVecs;
 	private TreeMap<Integer, Integer> edgeIdMap;
 	
 	private double validationPercentage;
@@ -47,9 +49,11 @@ public class DataGenerator {
 	public String fnTestingTriples;
 	public String fnTrainingRules;
 	public String fnGloveVectors;
+	public String fnGloveVectorsEdgeTypes;
 	
 	private String sep;
 	private String nl;
+
 	
 	public DataGenerator(final InMemoryRdfGraph graph, final Configuration config, 
 							final boolean undirected,
@@ -64,6 +68,9 @@ public class DataGenerator {
 		this.inEdges = inEdges;
 		this.outEdges = outEdges;
 		this.edgeIdMap = edgeIdMap;
+
+		this.allInVecs = inVerts;
+		this.allOutVecs = outVerts;
 		
 		this.undirected = undirected;
 		
@@ -75,6 +82,37 @@ public class DataGenerator {
 		logger.info("New DataGenerator class successfully creatd.");
 	}
 	
+	public DataGenerator(final InMemoryRdfGraph graph, final Configuration config, 
+					final boolean undirected, final BookmarkColoring BCA) {
+			this.graph = graph;
+			this.config = config;
+			
+			this.inVerts = BCA.getInVertices();
+			this.outVerts = BCA.getOutVertices();
+			this.inEdges = BCA.getInEdges();
+			this.outEdges = BCA.getOutEdges();
+			
+			this.allOutVecs = BCA.getAllOutVecs();
+			this.allInVecs = BCA.getAllInVecs();
+			this.edgeIdMap = BCA.edgeIdMap;
+			
+			this.undirected = undirected;
+			
+			this.validationPercentage = 0.2;
+			this.testingPercentage = 0.3;
+			
+			this.sep = "\t";
+			this.nl = "\n";
+			logger.info("New DataGenerator class successfully creatd.");
+		}
+	
+	/**
+	 * 
+	 * @param FILEPATH
+	 * @param fileExtension
+	 * @param BCA
+	 * @throws Exception
+	 */
 	public void Initialize(final String FILEPATH, final String fileExtension, final BookmarkColoring BCA) throws Exception {
 		randomDataSeed();
 		
@@ -86,6 +124,7 @@ public class DataGenerator {
 		generateTestingTriples();
 		generateTrainingRules();
 		generateGloveVectors(BCA, true);
+		generateGloveVectorsEdgeTypes(BCA, true);
 		
 	}
 	
@@ -100,13 +139,17 @@ public class DataGenerator {
 	    						+ "of 0.9 amount of the dataset.");
 	    
 	    Random rand = new Random();
-	    int iNumVerts = this.outVerts.length;
+	    int nonZeroVecs = 0;
+	    int iNumVecs = this.allOutVecs.length;
+	    for (int i = 0; i < iNumVecs; i++) {
+	    	if (this.allOutVecs[i].length > 0) nonZeroVecs++;
+	    }
 	    ArrayList<Integer> takenInts = new ArrayList<Integer>();
 	    
 	    // Calculate number of elements per dataset.
-	    int iNumValidElems = (int) (iNumVerts * this.validationPercentage);
-	    int iNumTestElems = (int) (iNumVerts * this.testingPercentage);
-	    int iNumTrainElems = iNumVerts - (iNumValidElems + iNumTestElems);
+	    int iNumValidElems = (int) (iNumVecs * this.validationPercentage);
+	    int iNumTestElems = (int) (iNumVecs * this.testingPercentage);
+	    int iNumTrainElems = iNumVecs - (iNumValidElems + iNumTestElems);
 	    // Initialize datasets.
 	    this.trainSet = new int[iNumTrainElems];
 	    this.validSet = new int[iNumValidElems];
@@ -116,8 +159,8 @@ public class DataGenerator {
 	    // duplicates.
 	    int i = 0, randIdx;
 	    while (i < iNumTrainElems) {
-	    	randIdx = rand.nextInt(iNumVerts);
-	    	if (!takenInts.contains(randIdx)) {
+	    	randIdx = rand.nextInt(iNumVecs);
+	    	if (this.allOutVecs[randIdx].length > 0 && !takenInts.contains(randIdx)) {
 	    		this.trainSet[i] = randIdx;
 	    		takenInts.add(randIdx);
 	    		i++;
@@ -127,8 +170,8 @@ public class DataGenerator {
 	    // duplicates.
 	    i = 0;
 	    while (i < iNumValidElems) {
-	    	randIdx = rand.nextInt(iNumVerts);
-	    	if (!takenInts.contains(randIdx)) {
+	    	randIdx = rand.nextInt(iNumVecs);
+	    	if (this.allOutVecs[randIdx].length > 0 && !takenInts.contains(randIdx)) {
 	    		this.validSet[i] = randIdx;
 	    		takenInts.add(randIdx);
 	    		i++;
@@ -138,8 +181,8 @@ public class DataGenerator {
 	    // duplicates.
 	    i = 0;
 	    while (i < iNumTestElems) {
-	    	for (int j = 0; j < iNumVerts; j++) {
-	    		if (!takenInts.contains(j)) {
+	    	for (int j = 0; j < iNumVecs; j++) {
+	    		if (this.allOutVecs[j].length > 0 && !takenInts.contains(j)) {
 	    			this.testSet[i] = j;
 	    			i++;
 	    		}
@@ -363,6 +406,52 @@ public class DataGenerator {
 		}
 		
 		KaleEmbeddingTextWriter kaleWriter = new KaleEmbeddingTextWriter(this.fnGloveVectors, this.config);
+		kaleWriter.write(lines);
+	}
+	
+	/**
+	 * 
+	 * @param bcvs
+	 * @param singleLines
+	 * @throws Exception
+	 */
+	public void generateGloveVectorsEdgeTypes(final BookmarkColoring BCA, final boolean singleLines) throws Exception {
+		
+		this.fnGloveVectorsEdgeTypes = generateFileDir("edgeType_glove_vectors");
+		ArrayList<Integer> edgeListIdx = BCA.getCoOccurrenceIdx_I_edges();
+		ArrayList<Integer> edgeList = new ArrayList<Integer>();
+		int edge;
+		for (int i = 0; i < edgeListIdx.size(); i++) {
+			edge = edgeListIdx.get(i);
+			if (!edgeList.contains(edge)) edgeList.add(edge);
+		}
+
+		TreeMap<Integer, BCV> edgeBcvs = new TreeMap<Integer, BCV>();
+		BCV bcv;
+		for (int i = 0; i < BCA.getBCVs().size(); i++) {
+			bcv = BCA.getBCVs().get(i);
+			if (edgeList.contains(bcv.getRootNode())) {
+				// Write line to file.
+				if (bcv.getRootNode() > this.outVerts.length) {
+					int type = BCA.edgeIdTypeMap.get(bcv.getRootNode() + this.outVerts.length);
+					BCV bcvNew = bcv.copy();
+					if (edgeBcvs.containsKey(type)) {
+						BCV bcvOld = edgeBcvs.get(type).copy();
+						bcvNew.merge(bcvOld);
+					}
+					edgeBcvs.put(type, bcvNew);
+				}
+			}
+		}
+
+		ArrayList<String> lines = new ArrayList<String>();
+		String line = "";
+		for (int i = 0; i < edgeBcvs.size(); i++) {
+			line = edgeBcvs.get(i).toString() + nl;
+			lines.add(line);
+		}
+		
+		KaleEmbeddingTextWriter kaleWriter = new KaleEmbeddingTextWriter(this.fnGloveVectorsEdgeTypes, this.config);
 		kaleWriter.write(lines);
 	}
 	

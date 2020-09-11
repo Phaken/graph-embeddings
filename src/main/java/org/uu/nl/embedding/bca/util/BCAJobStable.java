@@ -17,7 +17,7 @@ public abstract class BCAJobStable extends BCAJob {
 		super(bookmark, reverse, alpha, epsilon, graph, vertexOut, vertexIn, edgeOut, edgeIn);
 	}
 
-	protected BCV doWork(final boolean reverse) {
+	protected BCV doWork(final boolean reverse) throws Exception {
 
 		final TreeMap<Integer, PaintedNode> nodeTree = new TreeMap<>();
 		final BCV bcv = new BCV(bookmark);
@@ -37,6 +37,15 @@ public abstract class BCAJobStable extends BCAJob {
 
 			// Keep part of the available paint on this node, distribute the rest
 			bcv.add(focusNode, (alpha * wetPaint));
+			/*
+			 * 
+			if (node.nodeID < this.vertexOut.length) focusNode = node.nodeID;
+			else focusNode = node.nodeID - this.vertexOut.length;
+			wetPaint = node.getPaint();
+
+			// Keep part of the available paint on this node, distribute the rest
+			bcv.add(node.nodeID, (alpha * wetPaint));
+			 */
 
 			neighbors = getNeighbors(reverse, focusNode);
 			edges = getEdges(reverse, focusNode);

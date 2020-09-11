@@ -54,12 +54,22 @@ public class TripleGradient {
 	
 	public void calculateGradientGlove() throws Exception {
 		int iNumberOfFactors = this.MatrixE.columns();
+		final int dictSize = MatrixR.dictSize();
+		
 		int iPosHead = this.PosTriple.head();
-		int iPosTail = this.PosTriple.tail();
 		int iPosRelation = this.PosTriple.relation();
+		/*
+		if (this.PosTriple.relation() < dictSize) iPosRelation = this.PosTriple.relation();
+		else iPosRelation = this.PosTriple.relation() - dictSize;*/
+		int iPosTail = this.PosTriple.tail();
+		
 		int iNegHead = this.NegTriple.head();
+		int iNegRelation = this.PosTriple.relation();
+		/*
+		if (this.NegTriple.relation() < dictSize) iNegRelation = this.PosTriple.relation();
+		else iNegRelation = this.NegTriple.relation() - dictSize;*/
 		int iNegTail = this.NegTriple.tail();
-		int iNegRelation = this.NegTriple.relation();
+		
 		System.out.println("iPosHead= " + iPosHead + ", iPosRelation= " + iPosRelation + ", iPosTail= " + iPosTail);
 		System.out.println("iNegHead= " + iNegHead + ", iNegRelation= " + iNegRelation + ", iNegTail= " + iNegTail);
 		

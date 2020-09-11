@@ -138,4 +138,11 @@ public class BCV extends HashMap<Integer, Float> {
 		other.forEach((key, value2) -> this.merge(key, value2, Float::sum));
 	}
 	
+
+	public BCV copy() {
+		BCV bcvNew = new BCV(this.getRootNode());
+		this.forEach((key, value2) -> bcvNew.add(key, value2));
+		return bcvNew;
+	}
+	
 }

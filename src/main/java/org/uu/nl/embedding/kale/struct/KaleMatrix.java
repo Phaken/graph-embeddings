@@ -27,15 +27,18 @@ public class KaleMatrix {
 	private int[][] pNodeID = null;
 	private double[][] pData = null;
 	private double[][] pSumData = null;
+	
 	private int iNumberOfRows;
 	private int iNumberOfColumns;
+	private int dictSize;
 	private HashMap<Integer, HashMap<Integer, Double>> rowMap;
 	private HashMap<Integer, HashMap<Integer, Double>> rowSumMap;
 	
-	public KaleMatrix(int iRows, int iColumns) {
+	public KaleMatrix(int iRows, int iColumns, int dictSize) {
 
 		this.iNumberOfRows = iRows;
 		this.iNumberOfColumns = iColumns;
+		this.dictSize = dictSize;
 		
 		rowMap = new HashMap<Integer, HashMap<Integer, Double>>(iRows);
 	}
@@ -46,6 +49,10 @@ public class KaleMatrix {
 	
 	public int columns() {
 		return this.iNumberOfColumns;
+	}
+
+	public int dictSize() {
+		return this.dictSize;
 	}
 	
 	public double getNeighbor(int i, int j) throws Exception {

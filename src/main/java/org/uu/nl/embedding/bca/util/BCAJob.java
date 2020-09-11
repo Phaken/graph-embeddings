@@ -36,13 +36,13 @@ public abstract class BCAJob implements Callable<BCV> {
 	}
 
 	@Override
-	public BCV call() {
+	public BCV call() throws Exception {
 		final BCV bcv = doWork(false);
 		if (this.reverse) bcv.merge(doWork(true));
 		return bcv;
 	}
 
-	protected BCV doWork(final boolean reverse) {
+	protected BCV doWork(final boolean reverse) throws Exception {
 		final NumericalProperty edgeWeights = graph.getEdgeWeightProperty();
 
 		final TreeMap<Integer, PaintedNode> nodeTree = new TreeMap<>();
