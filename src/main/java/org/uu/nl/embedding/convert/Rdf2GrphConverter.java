@@ -11,6 +11,8 @@ import org.uu.nl.embedding.compare.CompareJob;
 import org.uu.nl.embedding.compare.CompareResult;
 import org.uu.nl.embedding.compare.CompareGroup;
 import org.uu.nl.embedding.convert.util.NodeInfo;
+import org.uu.nl.embedding.kale.struct.KaleTriple;
+import org.uu.nl.embedding.kale.struct.TripleSet;
 import org.uu.nl.embedding.util.InMemoryRdfGraph;
 import org.uu.nl.embedding.util.config.Configuration;
 import org.uu.nl.embedding.util.similarity.PreComputed;
@@ -29,6 +31,9 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 	private static final Logger logger = Logger.getLogger(Rdf2GrphConverter.class);
 	private final Configuration config;
 
+	private TripleSet tripleSet;
+	private TripleSet typedTripleSet;
+
 	public Rdf2GrphConverter(Configuration config) {
 		this.config = config;
 	}
@@ -43,6 +48,8 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 		final Map<String, Float> predicateWeights = config.getWeights();
 		final Map<String, CompareGroup> sourceGroups = new HashMap<>();
 		final Map<String, CompareGroup> targetGroups = new HashMap<>();
+		tripleSet = new TripleSet();
+		typedTripleSet = new TripleSet();
 
 		if(config.getSimilarity() != null)
 			config.getSimilarity().forEach(
@@ -62,11 +69,12 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 		final Map<Node, Integer> edgeTypes = new HashMap<>();
 
 		long skippedTriples = 0;
-		int s_i, o_i;
+		int s_i, p_i, o_i;
 
 		String predicateString;
 		Node s, p, o;
 		Triple t ;
+		KaleTriple kT;
 
 		final Set<String> predicateSet = new HashSet<>();
 		final ExtendedIterator<Triple> triples = model.getGraph().find();
@@ -93,8 +101,12 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 				// Only create a new ID if the vertex is not yet present
 				s_i = addVertex(g, p, s, vertexMap, predicateLiteralMap);
 				o_i = addVertex(g, p, o, vertexMap, predicateLiteralMap);
-
-				addEdge(g, p, s_i, o_i, edgeTypes, doPredicateWeighting ? predicateWeights.get(predicateString) : 1f);
+				p_i = addEdge(g, p, s_i, o_i, edgeTypes, doPredicateWeighting ? predicateWeights.get(predicateString) : 1f);
+				
+				kT = new KaleTriple(s_i, p_i, o_i);
+				tripleSet.addTriple(kT);
+				kT = new KaleTriple(s_i, g.getEdgeTypeProperty().getValueAsInt(p_i), o_i);
+				typedTripleSet.addTriple(kT);
 
 				if(doSimilarityMatching) {
 					// Some similarity metrics require pre-processing
@@ -114,6 +126,7 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 				pb.step();
 			}
 		} finally {
+			g.setTripleSet(this.tripleSet);
 			triples.close();
 			logger.info("Skipped " + skippedTriples +
 					" unweighted triples (" + String.format("%.2f", (skippedTriples/(double)model.size()*100)) + " %)");
@@ -237,7 +250,7 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 	 * 	However there are only a few types of edges (relationships)
 	 * 	So we also store a reference to a unique edge-type id
 	 */
-    private void addEdge(InMemoryRdfGraph g, Node p, int s_i, int o_i, Map<Node, Integer> edgeTypes, float weight) {
+    private int addEdge(InMemoryRdfGraph g, Node p, int s_i, int o_i, Map<Node, Integer> edgeTypes, float weight) {
     	// Create a unique id for this predicate given the subject-object pair
 		final int p_i = g.addDirectedSimpleEdge(s_i, o_i);
 		g.getEdgeLabelProperty().setValue(p_i, p.toString(false));
@@ -246,6 +259,15 @@ public class Rdf2GrphConverter implements Converter<Model, InMemoryRdfGraph> {
 		// Store the edge-type value for this new edge
 		g.getEdgeTypeProperty().setValue(p_i, edgeTypes.get(p));
 		g.getEdgeWeightProperty().setValue(p_i, weight);
+		return p_i;
 	}
+    
+    public TripleSet getTripleSet() {
+    	return this.tripleSet;
+    }
+    
+    public TripleSet getTypedTripleSet() {
+    	return this.typedTripleSet;
+    }
 
 }

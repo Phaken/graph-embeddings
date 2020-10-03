@@ -3,6 +3,7 @@
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import Jama.Matrix;
 
@@ -51,7 +52,7 @@ public class ArrayUtils {
 	 * @param array
 	 * @return
 	 */
-	static public boolean[] toArray(final ArrayList<Boolean> array, final boolean bool) {
+	static public boolean[] toArray(final ArrayList<Boolean> array, final boolean typeHolder) {
 	    int len = array.size();
 
 	    @SuppressWarnings("unchecked")
@@ -66,12 +67,25 @@ public class ArrayUtils {
 	 * @param array
 	 * @return
 	 */
-	static public int[] toArray(final ArrayList<Integer> array, final int i) {
+	static public int[] toArray(final ArrayList<Integer> array, final int typeHolder) {
 	    int len = array.size();
 
 	    @SuppressWarnings("unchecked")
-	    int[] resArray = (int[]) Array.newInstance(array.getClass().getComponentType(), len);
-	    System.arraycopy(array, 0, resArray, 0, len);
+	    int[] resArray = new int[len];
+	    for (int i = 0; i < len; i++) resArray[i] = array.get(i);
+
+	    return resArray;
+	}
+	
+	static public int[][] toArray(final Map<Integer, int[]> map, final int typeHolder) {
+		
+	    @SuppressWarnings("unchecked")
+	    int[][] resArray = new int[map.size()][];
+	    int idx, i = 0;
+	    for (Map.Entry entry : map.entrySet()) {
+	    	idx = (int) entry.getKey();
+	    	resArray[i++] = map.get(idx);
+	    }
 
 	    return resArray;
 	}

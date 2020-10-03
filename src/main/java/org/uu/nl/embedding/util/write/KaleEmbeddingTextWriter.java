@@ -26,7 +26,8 @@ public class KaleEmbeddingTextWriter implements EmbeddingWriter {
 	private String FILETYPE;
 
 	public KaleEmbeddingTextWriter(String fileName, Configuration config, final String FILETYPE) {
-		this.FILE = fileName + FILETYPE;
+		if (!FileHasFileType(fileName)) this.FILE = fileName + FILETYPE;
+		else this.FILE = fileName;
 		this.FILETYPE = FILETYPE;
 		
 		this.config = config;
@@ -36,14 +37,47 @@ public class KaleEmbeddingTextWriter implements EmbeddingWriter {
 		this.writeNodeTypes[NodeInfo.LITERAL.id] = config.getOutput().outputLiteralNodes();
 	}
 	
-	public KaleEmbeddingTextWriter(String fileName, Configuration config) {
+	/*public KaleEmbeddingTextWriter(String fileName, Configuration config) {
 		this.FILE = fileName;
+		this.FILETYPE = ".tsv";
 		
 		this.config = config;
 		this.writeNodeTypes = new boolean[3];
 		this.writeNodeTypes[NodeInfo.URI.id] = config.getOutput().outputUriNodes();
 		this.writeNodeTypes[NodeInfo.BLANK.id]  = config.getOutput().outputBlankNodes();
 		this.writeNodeTypes[NodeInfo.LITERAL.id] = config.getOutput().outputLiteralNodes();
+	}*/
+	
+	public void write(final float[] embedding, final int[] orderedIDs, final int iDim) throws IOException, Exception {
+		if (embedding.length <= 0) throw new Exception("Received invalid embedding array: "+embedding.length);
+		if (orderedIDs.length <= 0) throw new Exception("Received invalid orderedIDs array: "+orderedIDs.length);
+		if (iDim <= 0) throw new Exception("Received invalid dimensionality: "+iDim);
+		
+		final int nrLines = orderedIDs.length;
+		ArrayList<String> lines = new ArrayList<String>();
+		
+		String line = "";
+		for (int i = 0; i < orderedIDs.length; i++) {
+			line = orderedIDs[i] + ":";
+			for (int j = 0; j < iDim; j++) {
+				line += "\t" + embedding[ ((i*iDim)+j) ];
+			}
+			lines.add(line + "\n");
+		}
+		
+		try (ProgressBar pb = Configuration.progressBar("Writing to file", nrLines, "embeddings\n");
+			 Writer writer = new BufferedWriter(new FileWriter(this.FILE))) {
+
+			writeConfig(writer);
+
+			for (int i = 0; i < nrLines; i++) {
+
+				writer.write(lines.get(i));
+				pb.step();
+			}
+			writer.close();
+			logger.info("Data written to: " + this.FILE);
+		}
 	}
 	
 	public void write(final ArrayList<String> lines) throws IOException {
@@ -140,5 +174,10 @@ public class KaleEmbeddingTextWriter implements EmbeddingWriter {
 				pb.step();
 			}
 		}
+	}
+	
+	public boolean FileHasFileType(final String fnInput) {
+		if (fnInput.contains(".tsv")) return true;
+		return false;
 	}
 }

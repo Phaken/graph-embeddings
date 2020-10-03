@@ -47,7 +47,7 @@ public class RuleGradient {
 	}
 	
 	public void calculateGradient(double weight) throws Exception {
-		if (this.isGlove) calculateGradientGlove(weight); // VERDER GAAN WAAR GEBLEVEN
+		if (this.isGlove) calculateGradientGlove(weight);
 		//else calculateGradientDefault(weight);
 	}
 	
@@ -66,6 +66,7 @@ public class RuleGradient {
 		int iSndHead = this.Rule.getSecondTriple().head();
 		int iSndTail = this.Rule.getSecondTriple().tail();
 		int iSndRelation = this.Rule.getSecondTriple().relation();
+		System.out.println("RuleGradient.calculateGradientGlove() - Rule = "+ Rule.toString());
 		
 		int iNegFstHead = this.NegRule.getFirstTriple().head();
 		int iNegFstTail = this.NegRule.getFirstTriple().tail();
@@ -73,6 +74,7 @@ public class RuleGradient {
 		int iNegSndHead = this.NegRule.getSecondTriple().head();
 		int iNegSndTail = this.NegRule.getSecondTriple().tail();
 		int iNegSndRelation = this.NegRule.getSecondTriple().relation();
+		System.out.println("RuleGradient.calculateGradientGlove() - NegRule = "+ NegRule.toString());
 
 		/*
 		 * From paper:
@@ -94,7 +96,9 @@ public class RuleGradient {
 				 * Where e_i, r_k, e_j are the GloVe vector embedding of
 				 * head entity, relation, and tail entity respectively.
 				 */
-				tripleSum = this.MatrixE.getNeighbor(iFstHead, p) + this.MatrixR.getNeighbor(iFstRelation, p) - this.MatrixE.getNeighbor(iFstTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iFstHead, p) +
+								this.MatrixR.getNeighbor(iFstRelation, p) -
+								this.MatrixE.getNeighbor(iFstTail, p);
 				this.dFstPi -= Math.abs(tripleSum);
 			}
 			this.dFstPi *= dValue;
@@ -102,7 +106,9 @@ public class RuleGradient {
 			
 			this.dSndPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iSndHead, p) + this.MatrixR.getNeighbor(iSndRelation, p) - this.MatrixE.getNeighbor(iSndTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iSndHead, p) +
+								this.MatrixR.getNeighbor(iSndRelation, p) -
+								this.MatrixE.getNeighbor(iSndTail, p);
 				this.dSndPi -= Math.abs(tripleSum);
 			}
 			this.dSndPi *= dValue;
@@ -118,7 +124,9 @@ public class RuleGradient {
 			this.dNegFstPi = 0.0;
 			double dNegPi=0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) + this.MatrixR.getNeighbor(iNegFstRelation, p) - this.MatrixE.getNeighbor(iNegFstTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) +
+								this.MatrixR.getNeighbor(iNegFstRelation, p) -
+								this.MatrixE.getNeighbor(iNegFstTail, p);
 				this.dNegFstPi -= Math.abs(tripleSum);
 			}
 			this.dNegFstPi *= dValue;
@@ -126,7 +134,9 @@ public class RuleGradient {
 			
 			this.dNegSndPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) + this.MatrixR.getNeighbor(iNegSndRelation, p) - this.MatrixE.getNeighbor(iNegSndTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) +
+								this.MatrixR.getNeighbor(iNegSndRelation, p) -
+								this.MatrixE.getNeighbor(iNegSndTail, p);
 				this.dNegSndPi -= Math.abs(tripleSum);
 			}
 			this.dNegSndPi *= dValue;
@@ -142,7 +152,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dFstSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iFstHead, p) + this.MatrixR.getNeighbor(iFstRelation, p) - this.MatrixE.getNeighbor(iFstTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iFstHead, p) +
+									this.MatrixR.getNeighbor(iFstRelation, p) -
+									this.MatrixE.getNeighbor(iFstTail, p);
 					if (tripleSum > 0) 		dFstSgn = 1.0;
 					else if (tripleSum < 0) dFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -155,7 +167,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dSndSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iSndHead, p) + this.MatrixR.getNeighbor(iSndRelation, p) - this.MatrixE.getNeighbor(iSndTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iSndHead, p) +
+									this.MatrixR.getNeighbor(iSndRelation, p) -
+									this.MatrixE.getNeighbor(iSndTail, p);
 					if (tripleSum > 0) 		dSndSgn = 1.0;
 					else if (tripleSum < 0) dSndSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -166,7 +180,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dNegFstSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) + this.MatrixR.getNeighbor(iNegFstRelation, p) - this.MatrixE.getNeighbor(iNegFstTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) +
+									this.MatrixR.getNeighbor(iNegFstRelation, p) -
+									this.MatrixE.getNeighbor(iNegFstTail, p);
 					if (tripleSum > 0) 		dNegFstSgn = 1.0;
 					else if (tripleSum < 0) dNegFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -177,7 +193,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.		
 					double dNegSndSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) + this.MatrixR.getNeighbor(iNegSndRelation, p) - this.MatrixE.getNeighbor(iNegSndTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) +
+									this.MatrixR.getNeighbor(iNegSndRelation, p) -
+									this.MatrixE.getNeighbor(iNegSndTail, p);
 					if (tripleSum > 0) 		dNegSndSgn = 1.0;
 					else if (tripleSum < 0) dNegSndSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -202,7 +220,9 @@ public class RuleGradient {
 			this.dFstPi = 0.0;
 			double dPosPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iFstHead, p) + this.MatrixR.getNeighbor(iFstRelation, p) - this.MatrixE.getNeighbor(iFstTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iFstHead, p) +
+								this.MatrixR.getNeighbor(iFstRelation, p) -
+								this.MatrixE.getNeighbor(iFstTail, p);
 				this.dFstPi -= Math.abs(tripleSum);
 			}
 			this.dFstPi *= dValue;
@@ -211,7 +231,9 @@ public class RuleGradient {
 			// Second positive triple.
 			this.dSndPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iSndHead, p) + this.MatrixR.getNeighbor(iSndRelation, p) - this.MatrixE.getNeighbor(iSndTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iSndHead, p) +
+								this.MatrixR.getNeighbor(iSndRelation, p) -
+								this.MatrixE.getNeighbor(iSndTail, p);
 				this.dSndPi -= Math.abs(tripleSum);
 			}
 			this.dSndPi *= dValue;
@@ -220,7 +242,9 @@ public class RuleGradient {
 			// Third positive triple.
 			this.dTrdPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iTrdHead, p) + this.MatrixR.getNeighbor(iTrdRelation, p) - this.MatrixE.getNeighbor(iTrdTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iTrdHead, p) +
+								this.MatrixR.getNeighbor(iTrdRelation, p) -
+								this.MatrixE.getNeighbor(iTrdTail, p);
 				this.dTrdPi -= Math.abs(tripleSum);
 			}
 			this.dTrdPi *= dValue;
@@ -234,7 +258,9 @@ public class RuleGradient {
 			this.dNegFstPi = 0.0;
 			double dNegPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) + this.MatrixR.getNeighbor(iNegFstRelation, p) - this.MatrixE.getNeighbor(iNegFstTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) +
+								this.MatrixR.getNeighbor(iNegFstRelation, p) -
+								this.MatrixE.getNeighbor(iNegFstTail, p);
 				this.dNegFstPi -= Math.abs(tripleSum);
 			}
 			this.dNegFstPi *= dValue;
@@ -243,7 +269,9 @@ public class RuleGradient {
 			// Second negative triple.
 			this.dNegSndPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) + this.MatrixR.getNeighbor(iNegSndRelation, p) - this.MatrixE.getNeighbor(iNegSndTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) +
+								this.MatrixR.getNeighbor(iNegSndRelation, p) -
+								this.MatrixE.getNeighbor(iNegSndTail, p);
 				this.dNegSndPi -= Math.abs(tripleSum);
 			}
 			this.dNegSndPi *= dValue;
@@ -252,7 +280,9 @@ public class RuleGradient {
 			// Third negative triple.
 			this.dNegTrdPi = 0.0;
 			for (int p = 0; p < iNumberOfFactors; p++) {
-				tripleSum = this.MatrixE.getNeighbor(iNegTrdHead, p) + this.MatrixR.getNeighbor(iNegTrdRelation, p) - this.MatrixE.getNeighbor(iNegTrdTail, p);
+				tripleSum = this.MatrixE.getNeighbor(iNegTrdHead, p) +
+								this.MatrixR.getNeighbor(iNegTrdRelation, p) -
+								this.MatrixE.getNeighbor(iNegTrdTail, p);
 				this.dNegTrdPi -= Math.abs(tripleSum);
 			}
 			this.dNegTrdPi *= dValue;
@@ -269,7 +299,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dFstSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iFstHead, p) + this.MatrixR.getNeighbor(iFstRelation, p) - this.MatrixE.getNeighbor(iFstTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iFstHead, p) +
+									this.MatrixR.getNeighbor(iFstRelation, p) -
+									this.MatrixE.getNeighbor(iFstTail, p);
 					if (tripleSum > 0) 		dFstSgn = 1.0;
 					else if (tripleSum < 0) dFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -280,7 +312,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dSndSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iSndHead, p) + this.MatrixR.getNeighbor(iSndRelation, p) - this.MatrixE.getNeighbor(iSndTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iSndHead, p) +
+									this.MatrixR.getNeighbor(iSndRelation, p) -
+									this.MatrixE.getNeighbor(iSndTail, p);
 					if (tripleSum > 0) 		dSndSgn = 1.0;
 					else if (tripleSum < 0) dSndSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -291,7 +325,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dTrdSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iTrdHead, p) + this.MatrixR.getNeighbor(iTrdRelation, p) - this.MatrixE.getNeighbor(iTrdTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iTrdHead, p) +
+									this.MatrixR.getNeighbor(iTrdRelation, p) -
+									this.MatrixE.getNeighbor(iTrdTail, p);
 					if (tripleSum > 0) 		dTrdSgn = 1.0;
 					else if (tripleSum < 0) dTrdSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -302,7 +338,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dNegFstSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) + this.MatrixR.getNeighbor(iNegFstRelation, p) - this.MatrixE.getNeighbor(iNegFstTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iNegFstHead, p) +
+									this.MatrixR.getNeighbor(iNegFstRelation, p) -
+									this.MatrixE.getNeighbor(iNegFstTail, p);
 					if (tripleSum > 0) 		dNegFstSgn = 1.0;
 					else if (tripleSum < 0) dNegFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -313,7 +351,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.	
 					double dNegSndSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) + this.MatrixR.getNeighbor(iNegSndRelation, p) - this.MatrixE.getNeighbor(iNegSndTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iNegSndHead, p) +
+									this.MatrixR.getNeighbor(iNegSndRelation, p) -
+									this.MatrixE.getNeighbor(iNegSndTail, p);
 					if (tripleSum > 0) 		dNegSndSgn = 1.0;
 					else if (tripleSum < 0) dNegSndSgn = -1.0;
 					// Add resulting gradients to respective matrices.
@@ -324,7 +364,9 @@ public class RuleGradient {
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
 					double dNegTrdSgn = 0.0;
-					tripleSum = this.MatrixE.getNeighbor(iNegTrdHead, p) + this.MatrixR.getNeighbor(iNegTrdRelation, p) - this.MatrixE.getNeighbor(iNegTrdTail, p);
+					tripleSum = this.MatrixE.getNeighbor(iNegTrdHead, p) +
+									this.MatrixR.getNeighbor(iNegTrdRelation, p) -
+									this.MatrixE.getNeighbor(iNegTrdTail, p);
 					if (tripleSum > 0) 		dNegTrdSgn = 1.0;
 					else if (tripleSum < 0) dNegTrdSgn = -1.0;
 					// Add resulting gradients to respective matrices.

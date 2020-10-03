@@ -2,6 +2,8 @@ package org.uu.nl.embedding;
 
 import org.apache.log4j.Logger;
 import org.uu.nl.embedding.bca.BookmarkColoring;
+import org.uu.nl.embedding.bca.models.BookmarkColoringEdges;
+import org.uu.nl.embedding.bca.models.BookmarkColoringNodes;
 import org.uu.nl.embedding.convert.Rdf2GrphConverter;
 import org.uu.nl.embedding.kale.KaleRunner;
 import org.uu.nl.embedding.opt.*;
@@ -72,7 +74,14 @@ public class Main {
 	        if (config.isKale()) {
 	        	//boolean nonDefault = true;
 	            //final CoOccurrenceMatrix bca = new BookmarkColoring(graph, config, nonDefault);
-	            
+	        	/*
+	            final CoOccurrenceMatrix bcaNodes = new BookmarkColoringNodes(graph, config);
+	            final CoOccurrenceMatrix bcaEdges = new BookmarkColoringEdges(graph, config);
+	            final IOptimizer optimizerNodes = createOptimizer(config, bcaNodes);
+	            final IOptimizer optimizerEdges = createOptimizer(config, bcaEdges);
+	            final Optimum optimumNodes = optimizerNodes.optimize();
+	            final Optimum optimumEdges = optimizerEdges.optimize();*/
+
 	        	KaleRunner kaleRunner = new KaleRunner(graph, config);
 	        	/*
 	        	CoOccurrenceMatrix kaleBca = kaleRunner.getKaleVectors();
@@ -88,7 +97,7 @@ public class Main {
 	            final IOptimizer optimizer = createOptimizer(config, bca);
 
 	            final Optimum optimum = optimizer.optimize();
-
+	            
 	            final EmbeddingWriter writer = new EmbeddingTextWriter(outFileName, config);
 	            writer.write(optimum, bca, Paths.get("").toAbsolutePath().resolve("out"));
 	        	

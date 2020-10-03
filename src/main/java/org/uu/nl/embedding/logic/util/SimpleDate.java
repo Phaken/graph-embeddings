@@ -51,28 +51,48 @@ public class SimpleDate {
 	 */
     public static int[] getDateAsIntArray(final String dateString) {
     	int[] resInts = new int[3];
+    	int day = 0, month = 0, year = 0;
     	List<String> tokens = Arrays.asList(dateString.split("-"));
     	
     	for(int i = 0; i < tokens.size(); i++) {
-			resInts[i] = Integer.parseInt(tokens.get(i)); 
-    		try {
-    			resInts[i] = (int) Integer.parseInt(tokens.get(i));
-    			if (i == 0 && (resInts[i] < 1 || resInts[i] > 31)) {
-    				throw new IllegalArgumentException("Invalid date format: " + dateString);
-    			} else if (i == 1 && (resInts[i] < 1 || resInts[i] > 12)) {
-    				throw new IllegalArgumentException("Invalid date format: " + dateString);
-    			} else if (i == 2 && resInts[i] < 0) {
-    				throw new IllegalArgumentException("Invalid date format: " + dateString);
-    			}
+    		try { resInts[i] = Integer.parseInt(tokens.get(i)); 
     		} catch (NumberFormatException e) { break; }
+    		
     	}
-    	return resInts;
+    	
+		if ((resInts[0] < 32) && (resInts[1] < 32) && (resInts[2] > 31)) {
+			day = resInts[0];
+			month = resInts[1];
+			year = resInts[2];
+		}
+		else if ((resInts[0] > 31) && (resInts[1] > 12) && (resInts[1] < 32)) {
+			day = resInts[1];
+			month = resInts[2];
+			year = resInts[0];
+		}
+		else if ((resInts[0] > 31) && (resInts[2] > 12) && (resInts[2] < 32)) {
+			day = resInts[2];
+			month = resInts[1];
+			year = resInts[0];
+		}
+		else if ((resInts[0] > 31) && (resInts[1] < 32) && (resInts[2] < 32)) {
+			day = resInts[2];
+			month = resInts[1];
+			year = resInts[0];
+		}
+		
+    	return new int[] {day, month, year} ;
     }
     
     public static boolean isDateFormat(String pattern) {
     	int[] res = getDateAsIntArray(pattern);
-        if(res[0] > 0 && res[0] < 31 && res[1] > 0 && res[1] < 13 && res[2] > 0) {
-        	return true; }
+        if (res[0] > 0 && res[0] < 31 && res[1] > 0 && res[1] < 13 && res[2] > 0) {
+        	return true;
+        } else if (res[0] > 0 && res[1] > 0 && res[1] < 13 && res[2] > 0 && res[2] < 31 ) {
+        	return true;
+        } else if (res[0] > 0 && res[1] > 0 && res[1] < 31 && res[2] > 0 && res[2] < 13) {
+        	return true;
+        }
         return false;
     }
 
@@ -149,6 +169,7 @@ public class SimpleDate {
 		}
 		//months
 		while (mon1 != mon2) {
+			if (mon1 == 13) { mon1 = 1; year1++; }
 			res += daysInMonth(mon1, year1);
 			mon1++;
 			if (mon1 == 13) { mon1 = 1; year1++; }

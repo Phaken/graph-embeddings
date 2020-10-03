@@ -1,6 +1,6 @@
 package org.uu.nl.embedding.kale.model;
 
-import org.uu.nl.embedding.kale.struct.Triple;
+import org.uu.nl.embedding.kale.struct.KaleTriple;
 import org.uu.nl.embedding.kale.struct.KaleMatrix;
 
 
@@ -10,8 +10,8 @@ import org.uu.nl.embedding.kale.struct.KaleMatrix;
  *
  */
 public class TripleGradient {
-	public Triple PosTriple;
-	public Triple NegTriple;
+	public KaleTriple PosTriple;
+	public KaleTriple NegTriple;
 	public KaleMatrix MatrixE;
 	public KaleMatrix MatrixR;
 	public KaleMatrix MatrixEGradient;
@@ -22,8 +22,8 @@ public class TripleGradient {
 	boolean isGlove;
 	
 	public TripleGradient(
-			Triple inPosTriple,
-			Triple inNegTriple,
+			KaleTriple inPosTriple,
+			KaleTriple inNegTriple,
 			KaleMatrix inMatrixE, 
 			KaleMatrix inMatrixR,
 			KaleMatrix inMatrixEGradient, 
@@ -70,8 +70,8 @@ public class TripleGradient {
 		else iNegRelation = this.NegTriple.relation() - dictSize;*/
 		int iNegTail = this.NegTriple.tail();
 		
-		System.out.println("iPosHead= " + iPosHead + ", iPosRelation= " + iPosRelation + ", iPosTail= " + iPosTail);
-		System.out.println("iNegHead= " + iNegHead + ", iNegRelation= " + iNegRelation + ", iNegTail= " + iNegTail);
+		//System.out.println("iPosHead= " + iPosHead + ", iPosRelation= " + iPosRelation + ", iPosTail= " + iPosTail);
+		//System.out.println("iNegHead= " + iNegHead + ", iNegRelation= " + iNegRelation + ", iNegTail= " + iNegTail);
 		
 		/*
 		 * From paper:
@@ -79,7 +79,7 @@ public class TripleGradient {
 		 * Where d is the dimension of the embedding space.
 		 */
 		double dValue = 1.0 / (3.0 * Math.sqrt(iNumberOfFactors));
-		double tripleSum;
+		double tripleSum, h, r, t;
 		
 		this.dPosPi = 0.0;
 		for (int p = 0; p < iNumberOfFactors; p++) {
@@ -90,7 +90,13 @@ public class TripleGradient {
 			 * Where e_i, r_k, e_j are the GloVe vector embedding of
 			 * head entity, relation, and tail entity respectively.
 			 */
-			tripleSum = this.MatrixE.getNeighbor(iPosHead, p) + this.MatrixR.getNeighbor(iPosRelation, p) - this.MatrixE.getNeighbor(iPosTail, p);
+			h = this.MatrixE.getNeighbor(iPosHead, p);
+			r = this.MatrixR.getNeighbor(iPosRelation, p);
+			t = this.MatrixE.getNeighbor(iPosTail, p);
+			tripleSum = h + r - t;
+			/*tripleSum = this.MatrixE.getNeighbor(iPosHead, p) +
+							this.MatrixR.getNeighbor(iPosRelation, p) -
+							this.MatrixE.getNeighbor(iPosTail, p);*/
 			this.dPosPi -= Math.abs(tripleSum);
 		}
 		this.dPosPi *= dValue;
@@ -99,7 +105,9 @@ public class TripleGradient {
 		// Repeat for negative triple
 		this.dNegPi = 0.0;
 		for (int p = 0; p < iNumberOfFactors; p++) {
-			tripleSum = this.MatrixE.getNeighbor(iNegHead, p) + this.MatrixR.getNeighbor(iNegRelation, p) - this.MatrixE.getNeighbor(iNegTail, p);
+			tripleSum = this.MatrixE.getNeighbor(iNegHead, p) +
+							this.MatrixR.getNeighbor(iNegRelation, p) -
+							this.MatrixE.getNeighbor(iNegTail, p);
 			this.dNegPi -= Math.abs(tripleSum);
 		}
 		this.dNegPi *= dValue;

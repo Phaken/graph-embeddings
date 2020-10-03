@@ -23,7 +23,7 @@ public class TripleSet {
 	private int iNumberOfEntities;
 	private int iNumberOfRelations;
 	private int iNumberOfTriples;
-	public ArrayList<Triple> pTriple = null;
+	public ArrayList<KaleTriple> pTriple = null;
 	public HashMap<String, Boolean> pTripleStr = null;
 	/*
 	 * STARTTEMP
@@ -35,6 +35,7 @@ public class TripleSet {
 	
 	public TripleSet() {
 		pTripleStr = new HashMap<String, Boolean>();
+		pTriple = new ArrayList<KaleTriple>();
 	}
 	
 	/**
@@ -51,12 +52,14 @@ public class TripleSet {
 		this.iNumberOfEntities = iNumGraphEntities;
 		this.iNumberOfRelations = iNumGraphRelations;
 		this.iNumberOfTriples = arTripleSet.length;
+		pTriple = new ArrayList<KaleTriple>();
 		addArrayTriples(arTripleSet, true);
 	}
 	
 	public TripleSet(int iEntities, int iRelations) throws Exception {
 		this.iNumberOfEntities = iEntities;
 		this.iNumberOfRelations = iRelations;
+		pTriple = new ArrayList<KaleTriple>();
 	}
 
 	/*
@@ -85,7 +88,7 @@ public class TripleSet {
 		return pTripleStr;
 	}
 	
-	public Triple get(int iID) throws Exception {
+	public KaleTriple get(int iID) throws Exception {
 		if (iID < 0) {
 			throw new Exception("getTriple error in TripleSet: ID out of range. Received: " + iID);
 		}
@@ -98,7 +101,7 @@ public class TripleSet {
 	 * @throws Exception
 	 * @author Euan Westenbroek
 	 */
-	public void addTriples(final Triple[] triples) throws Exception {
+	public void addTriples(final KaleTriple[] triples) throws Exception {
 		// Loop through arrays and construct Triples from them.
 		for (int i = 0; i < triples.length; i++) {
 			addTriples(triples[i]);
@@ -111,7 +114,7 @@ public class TripleSet {
 	 * @throws Exception
 	 * @author Euan Westenbroek
 	 */
-	public void addTriples(final Triple triple) throws Exception {
+	public void addTriples(final KaleTriple triple) throws Exception {
 		// Check for valid values.
 		if (triple.head() < 0) {
 			throw new Exception("Loading error in TripleSet: head entity ID out of range");
@@ -127,13 +130,23 @@ public class TripleSet {
 	
 	/**
 	 * 
+	 * @param triples
+	 * @throws Exception
+	 * @author Euan Westenbroek
+	 */
+	public void addTriple(final KaleTriple triple) {
+		this.pTriple.add(triple);
+	}
+	
+	/**
+	 * 
 	 * @param arTripleSet
 	 * @param isInit
 	 * @throws Exception
 	 * @author Euan Westenbroek
 	 */
 	public void addArrayTriples(final int[][] arTripleSet, final boolean isInit) throws Exception {
-		if (isInit) { pTriple = new ArrayList<Triple>(); }
+		if (isInit) { pTriple = new ArrayList<KaleTriple>(); }
 		int[] iTriple;
 		
 		// Loop through arrays and construct Triples from them.
@@ -161,30 +174,17 @@ public class TripleSet {
 			if (iRelation < 0) {
 				throw new Exception("Loading error in TripleSet: relation ID out of range");
 			}
-			this.pTriple.add(new Triple(iHead, iRelation, iTail));
+			this.pTriple.add(new KaleTriple(iHead, iRelation, iTail));
 		}
 	}
 	
 	public void load(String fnInput) throws Exception {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(
 				new FileInputStream(fnInput), "UTF-8"));
-		pTriple = new ArrayList<Triple>();
-		
-		/*
-		 * TEMP
-		 */
-		int cntr = 0;
-		/*
-		 * End temp
-		 */
+		pTriple = new ArrayList<KaleTriple>();
 		
 		String line = "";
 		try {
-			/*while (((line = reader.readLine()) != null) &&
-					((line.contains("#")) || (line.toLowerCase().contains("method:")))) {
-				/*Do nothing.
-				//System.out.println("#Commented line -> Skipped.");
-			}*/
 			
 			while ((line = reader.readLine()) != null) {
 				
@@ -203,13 +203,6 @@ public class TripleSet {
 				}
 				int iHead = Integer.parseInt(tokens[0]);
 				int iRelation = Integer.parseInt(tokens[1]);
-				/*
-				 * STARTTEMP
-				 */
-				if (iRelation > this.outverts.length) cntr++;/* System.out.println("predID is larger, namely: "+iRelation);*/
-				/*
-				 * ENDTEMP
-				 */
 				int iTail = Integer.parseInt(tokens[2]);
 				if (iHead < 0) {
 					throw new Exception("Loading error in TripleSet: head entity ID out of range.");
@@ -219,30 +212,11 @@ public class TripleSet {
 				}
 				if (iRelation < 0) {
 					throw new Exception("Loading error in TripleSet: relation ID out of range.");
-				}/*
-				if (iHead < 0 || iHead >= iNumberOfEntities) {
-					throw new Exception("Loading error in TripleSet: head entity ID out of range.\n" + 
-							"Expected positive number up to: " + iNumberOfEntities + ", instead received: " + iHead);
 				}
-				if (iTail < 0 || iTail >= iNumberOfEntities) {
-					throw new Exception("Loading error in TripleSet: tail entity ID out of range.\n" + 
-							"Expected positive number up to: " + iNumberOfEntities + ", instead received: " + iTail);
-				}
-				if (iRelation < 0 || iRelation >= iNumberOfRelations) {
-					throw new Exception("Loading error in TripleSet: relation ID out of range.\n" +
-							"Expected positive number up to: " + iNumberOfRelations + ", instead received: " + iRelation);
-				}*/
-				pTriple.add(new Triple(iHead, iRelation, iTail));
+				pTriple.add(new KaleTriple(iHead, iRelation, iTail));
 			}
 		} catch (Exception e) { e.printStackTrace(); }
 
-		/*
-		 * STARTTEMP
-		 */
-		System.out.println("####### of predID larger: "+cntr);
-		/*
-		 * ENDTEMP
-		 */
 		iNumberOfTriples = pTriple.size();
 		reader.close();
 	}
@@ -261,7 +235,7 @@ public class TripleSet {
 	public void subload(String fnInput) throws Exception {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(
 				new FileInputStream(fnInput), "UTF-8"));
-		pTriple = new ArrayList<Triple>();
+		pTriple = new ArrayList<KaleTriple>();
 		
 		String line = "";
 		//int count=0;
@@ -294,7 +268,7 @@ public class TripleSet {
 				if (iRelation < 0) {
 					throw new Exception("Loading error in TripleSet: relation ID out of range");
 				}
-				pTriple.add(new Triple(iHead, iRelation, iTail));
+				pTriple.add(new KaleTriple(iHead, iRelation, iTail));
 				/*
 				if(count==1000){
 					break;
@@ -308,22 +282,31 @@ public class TripleSet {
 	
 	
 	public void randomShuffle() {
-		TreeMap<Double, Triple> tmpMap = new TreeMap<Double, Triple>();
+		TreeMap<Double, KaleTriple> tmpMap = new TreeMap<Double, KaleTriple>();
 		for (int iID = 0; iID < iNumberOfTriples; iID++) {
 			int i = pTriple.get(iID).head();
 			int k = pTriple.get(iID).relation();
 			int j = pTriple.get(iID).tail();
-			tmpMap.put(Math.random(), new Triple(i, k, j));
+			tmpMap.put(Math.random(), new KaleTriple(i, k, j));
 		}
 		
-		pTriple = new ArrayList<Triple>();
+		pTriple = new ArrayList<KaleTriple>();
 		Iterator<Double> iterValues = tmpMap.keySet().iterator();
 		while (iterValues.hasNext()) {
 			double dRand = iterValues.next();
-			Triple trip = tmpMap.get(dRand);
-			pTriple.add(new Triple(trip.head(), trip.relation(), trip.tail()));
+			KaleTriple trip = tmpMap.get(dRand);
+			pTriple.add(new KaleTriple(trip.head(), trip.relation(), trip.tail()));
 		}
 		iNumberOfTriples = pTriple.size();
 		tmpMap.clear();
+	}
+	
+	@Override
+	public String toString() {
+		String res = "";
+		for (KaleTriple kt : this.pTriple) {
+			res += kt.toString() + "\n";
+		}
+		return res;
 	}
 }

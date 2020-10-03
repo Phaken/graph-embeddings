@@ -1,25 +1,46 @@
 package org.uu.nl.embedding.kale;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
+//import org.uu.nl.embedding.KaleOptimizer;
 import org.uu.nl.embedding.bca.BookmarkColoring;
+import org.uu.nl.embedding.bca.models.BookmarkColoringEdges;
+import org.uu.nl.embedding.bca.models.BookmarkColoringNodes;
 import org.uu.nl.embedding.kale.model.KaleModel;
 import org.uu.nl.embedding.kale.util.DataGenerator;
+import org.uu.nl.embedding.opt.CostFunction;
+import org.uu.nl.embedding.opt.GloveCost;
+import org.uu.nl.embedding.opt.IOptimizer;
+import org.uu.nl.embedding.opt.Optimum;
+import org.uu.nl.embedding.opt.PGloveCost;
+import org.uu.nl.embedding.opt.grad.AMSGrad;
+import org.uu.nl.embedding.opt.grad.AMSGradKale;
+import org.uu.nl.embedding.opt.grad.Adagrad;
+import org.uu.nl.embedding.opt.grad.AdagradKale;
+import org.uu.nl.embedding.opt.grad.Adam;
 import org.uu.nl.embedding.util.CoOccurrenceMatrix;
 import org.uu.nl.embedding.util.InMemoryRdfGraph;
 import org.uu.nl.embedding.util.config.Configuration;
 import org.uu.nl.embedding.util.config.Configuration.BCA;
+import org.uu.nl.embedding.util.read.EmbeddingTextReader;
+import org.uu.nl.embedding.util.write.EmbeddingTextWriter;
+import org.uu.nl.embedding.util.write.EmbeddingWriter;
+import org.uu.nl.embedding.util.write.KaleEmbeddingTextWriter;
 
 public class KaleRunner {
 	
 	java.text.DecimalFormat decimalFormat = new java.text.DecimalFormat("#.######");
     private final static Logger logger = Logger.getLogger("KaleRunner");
 	
+    /*
 	private final KaleModel kale;
+	private final BookmarkColoring BCA;
 	private final InMemoryRdfGraph graph;
 	private final Configuration config;
 	private final int iNumEntities;
@@ -28,7 +49,26 @@ public class KaleRunner {
 	private final int iBcvSize;
 	private final HashSet<String> uniqueRelationTypes;
 	private final TreeMap<Integer, Integer> edgeTypeMap;
-	private final int iNumUniqueRelations;
+	private final int iNumUniqueRelations;*/
+
+	private KaleModel kale;
+	private BookmarkColoringNodes bcaNodes;
+	private BookmarkColoringEdges bcaEdges;
+	private InMemoryRdfGraph graph;
+	private Configuration config;
+	private int iNumVerts;
+	private int iNumEdges;
+	private int iNumTotal;
+	private int iDim;
+	
+	private float[] gloveArrayNodes;
+	private int[] orderedNodes;
+	private float[] gloveArrayEdges;
+	private int[] orderedEdges;
+	
+	private HashMap<String, Integer> uniqueRelationTypes;
+	private TreeMap<Integer, Integer> edgeIdTypeMap;
+	private int iNumUniqueRelations;
 	
 	private int m_NumFactor = 20;
 	private int m_NumMiniBatch = 100;
@@ -47,114 +87,161 @@ public class KaleRunner {
 	private String fnValidateTriples;
 	private String fnTestingTriples;
 	private String fnTrainingRules;
-	private String fnGloveVectors;
-	private String fnGloveVectorsEdgeTypes;
+	private String fnNodeGloveVectors;
+	private String fnEdgeGloveVectors;
+	
+	private String fnOptimumNodes;
+	private String fnOptimumEdges;
 	
 	/**
 	 * 
 	 * @param graph
 	 * @param config
 	 */
-	public KaleRunner(final InMemoryRdfGraph graph, final Configuration config) throws Exception {
+	public KaleRunner(final InMemoryRdfGraph graph,
+					final Configuration config) throws Exception {
 		
-        logger.info("Starting KaleRunner");
+        logger.info("Starting KaleRunner.");
 		
 		this.graph = graph;
 		this.config = config;
+		this.fileExtension = ".tsv";
+		
+		this.iDim = config.getDim();
 		this.m_NumFactor = config.getDim();
 		final int[] verts = graph.getVertices().toIntArray();
-        logger.info("Vertices succesfully loaded: " +verts.length+ " in total.");
 		final int[] edges = graph.getEdges().toIntArray();
-        logger.info("Edges succesfully loaded: " +edges.length+ " in total.");
-        this.dictSize = verts.length + edges.length;
-		this.uniqueRelationTypes = new HashSet<String>();
+		this.iNumVerts = verts.length;
+		this.iNumEdges = edges.length;
+        this.iNumTotal = this.iNumVerts + this.iNumEdges;
+		this.uniqueRelationTypes = new HashMap<String, Integer>();
 
-		//System.out.println("Predicate number #51808 is: " + graph.getEdgeLabelProperty().getValueAsString(edges[51808]).toLowerCase());
-		//String name = System.console().readLine();
 		int e = -1;
         logger.info("Determining unique predicates.");
         try {
         	for (e = 0; e < edges.length; e++) {
-			//for (int e = 0; e < 51808; e++) {
-        		/*
-        		 * START TEMP
-        		 *
-        		if (e == 51808) {
-        			System.out.println("--------------------------------------------GEKKE EDGE: " +edges[e]);
-        			System.out.println("--------------------------------------------GEKKE EDGE: " + graph.getEdgeTypeProperty().getValueAsInt(edges[e]));
-        		}
-        		/*
-        		 * END TEMP
-        		 */
-        		
         		String predicate;
         		if (graph.getEdgeTypeProperty().getValueAsInt(edges[e]) != 0) 
         			predicate = graph.getEdgeLabelProperty().getValueAsString(edges[e]).toLowerCase();
         		else predicate = "generated_predicate";
-        		//else predicate = Integer.toString(graph.getEdgeTypeProperty().getValueAsInt(edges[e]));
-				//System.out.println("Predicate #" +e+": " + predicate);
 				
-				if (!this.uniqueRelationTypes.contains(predicate)) {
-					this.uniqueRelationTypes.add(predicate);
-					System.out.println("Unique predicate added: " + predicate);
+				if (!this.uniqueRelationTypes.containsKey(predicate)) {
+					this.uniqueRelationTypes.put(predicate, graph.getEdgeTypeProperty().getValueAsInt(edges[e]));
 				}
-				//System.out.println("Checked edges: " +chEdges);
-				if (e == edges.length) System.out.println("Last edge was checked: ended with number: "+e);
 			}
+			int newType = this.uniqueRelationTypes.size();
+			while (this.uniqueRelationTypes.containsValue(newType))
+				newType++;
+			this.uniqueRelationTypes.put("is_same_or_before", newType);
+			
         } catch (Exception ex) { /*System.out.println("\nweird edge = " + edges[e] + "\n");*/ ex.printStackTrace(); }
         logger.info("Finished with " +uniqueRelationTypes.size()+ " unique predicates.");
 		
-		this.iNumEntities = verts.length;
-		this.iNumRelations = edges.length;
 		this.iNumUniqueRelations = uniqueRelationTypes.size();
+		System.out.println("Number of unique relations found: " +uniqueRelationTypes.size());
+		for (Entry<String, Integer> entry : this.uniqueRelationTypes.entrySet()) {
+			System.out.println("typeID: " +entry.getValue()+ ", relation: "+entry.getKey());
+		}
 
-		boolean nonDefault = true;
         logger.info("Generating kale BookmarkColoring.");
-		BookmarkColoring BCA = new BookmarkColoring(graph, config, nonDefault);
-		this.iBcvSize = BCA.maxNeighbors;
-		/*
-		 * START TEMP
-		 *
-		String bcvStr = "";
-		for (int i = 0; i < BCA.nonEmptyBcvs.size(); i++) bcvStr += BCA.nonEmptyBcvs.get(i) + "\n";
-		System.out.print("\n" + bcvStr + "\n");
-		/*
-		 * END TEMP
-		 */
-        logger.info("Finished generating kale BookmarkColoring.");
-		boolean undirected = true;
-        logger.info("Starting dataGenerator.");
-        this.edgeTypeMap = BCA.generateEdgeTypeMap();
-		DataGenerator dataGenerator = new DataGenerator(graph, config, undirected, BCA);
-		
-        logger.info("Finished dataGenerator.");
-		this.fileExtension = ".tsv";
-		dataGenerator.Initialize(this.FILEPATH, this.fileExtension, BCA);
-		
-		this.fnSaveFile = generateResultsFileDir();
-		
-		this.fnTrainingTriples = dataGenerator.fnTrainingTriples;
-		this.fnValidateTriples = dataGenerator.fnValidateTriples;
-		this.fnTestingTriples = dataGenerator.fnTestingTriples;
-		this.fnTrainingRules = dataGenerator.fnTrainingRules;
-		this.fnGloveVectors = dataGenerator.fnGloveVectors;
-		this.fnGloveVectorsEdgeTypes = dataGenerator.fnGloveVectorsEdgeTypes;
+        try { 
+        	/*boolean noOptimumFile = false;
+        	fnOptimumNodes = DataGenerator.checkFileExists(this.FILEPATH, this.fileExtension, "OptimumNodes", 0);
+        	fnOptimumEdges = DataGenerator.checkFileExists(this.FILEPATH, this.fileExtension, "OptimumEdges", 0);
+        	if (fnOptimumNodes == "") {
+        		fnOptimumNodes = DataGenerator.generateFileDir(this.FILEPATH, this.fileExtension, "OptimumNodes");
+        		noOptimumFile = true;
+        	}
+        	if (fnOptimumEdges == "") {
+        		fnOptimumEdges = DataGenerator.generateFileDir(this.FILEPATH, this.fileExtension, "OptimumEdges");
+        		noOptimumFile = true;
+        	}
+        	/*
+        	 * TEMP
+        	 *
+        	noOptimumFile = true;
+    		fnOptimumNodes = DataGenerator.generateFileDir(this.FILEPATH, this.fileExtension, "OptimumNodes");
+    		fnOptimumEdges = DataGenerator.generateFileDir(this.FILEPATH, this.fileExtension, "OptimumEdges");
+        	/*
+        	 * TEMP
+        	 */
+            this.bcaNodes = new BookmarkColoringNodes(graph, config);
+            this.bcaEdges = new BookmarkColoringEdges(graph, config,
+            											this.bcaNodes,
+            											this.uniqueRelationTypes);
 
-        logger.info("Creating Kale Model and initializing it.");
-		this.kale = new KaleModel(this.dictSize);
-		this.kale.Initialization(this.iNumUniqueRelations, 
-				this.iNumEntities,
-				this.iBcvSize,
-				this.fnTrainingTriples, 
-				this.fnValidateTriples, 
-				this.fnTestingTriples, 
-				this.fnTrainingRules,
-				this.fnGloveVectors,
-				this.fnGloveVectorsEdgeTypes,
-				this.graph, this.config,
-				BCA.generateEdgeIdTypeMap());
-        logger.info("Start training the Kale Model using Cochez method.");
-		this.kale.CochezLearn();
+        	if (true) {
+        	//if (noOptimumFile) {
+
+        		fnOptimumNodes = DataGenerator.generateFileDir(this.FILEPATH, this.fileExtension, "OptimumNodes");
+        		fnOptimumEdges = DataGenerator.generateFileDir(this.FILEPATH, this.fileExtension, "OptimumEdges");
+	            final IOptimizer optimizerNodes = createOptimizer(config, bcaNodes);
+	            final IOptimizer optimizerEdges = createOptimizer(config, bcaEdges);
+	            final Optimum optimumNodes = optimizerNodes.optimize();
+	            final Optimum optimumEdges = optimizerEdges.optimize();
+	            this.gloveArrayNodes = optimumNodes.getResult();
+	            this.gloveArrayEdges = optimumEdges.getResult();
+	            final KaleEmbeddingTextWriter writerNodes = new KaleEmbeddingTextWriter(fnOptimumNodes, config, this.fileExtension);
+	            final KaleEmbeddingTextWriter writerEdges = new KaleEmbeddingTextWriter(fnOptimumEdges, config, this.fileExtension);
+	            writerNodes.write(this.gloveArrayNodes, bcaNodes.getOrderedIDs(), this.iDim);
+	            writerEdges.write(this.gloveArrayEdges, bcaEdges.getOrderedIDs(), this.iDim);
+	
+	            
+        	} else {
+        		EmbeddingTextReader readerNodes = new EmbeddingTextReader(fnOptimumNodes);
+        		EmbeddingTextReader readerEdges = new EmbeddingTextReader(fnOptimumEdges);
+        		this.gloveArrayNodes = readerNodes.getFloatEmbeddings();
+        		this.gloveArrayEdges = readerEdges.getFloatEmbeddings();
+        		this.orderedNodes = readerNodes.getOrderedIDs();
+        		this.orderedEdges = readerEdges.getOrderedIDs();
+        		this.iDim = readerNodes.getDimension();
+        		
+        	}
+            
+	        logger.info("Finished generating kale BookmarkColoring.");
+	        //this.edgeTypeMap = this.BCA.generateEdgeTypeMap();
+
+	        logger.info("Starting dataGenerator.");
+			boolean undirected = true;
+			this.fileExtension = ".tsv";
+			//DataGenerator dataGenerator = new DataGenerator(graph, config, undirected, this.bcaNodes, this.uniqueRelationTypes);
+			//dataGenerator.Initialize(this.FILEPATH, this.fileExtension, this.bcaNodes, this.bcaEdges);
+			DataGenerator dataGenerator = new DataGenerator(graph, config, undirected,
+					this.uniqueRelationTypes,
+					this.FILEPATH, this.fileExtension,
+					this.bcaNodes, this.bcaEdges);
+	        logger.info("Finished dataGenerator.");
+			
+			this.fnSaveFile = generateResultsFileDir();
+			
+			this.fnTrainingTriples = dataGenerator.getFileTrainingTriples();
+			this.fnValidateTriples = dataGenerator.getFileValidateTriples();
+			this.fnTestingTriples = dataGenerator.getFileTestingTriples();
+			this.fnTrainingRules = dataGenerator.getFileTrainingRules();
+			this.fnNodeGloveVectors = dataGenerator.getFileNodeBCVs();
+			this.fnEdgeGloveVectors = dataGenerator.getFileEdgeBCVs();
+	
+	        logger.info("Creating Kale Model and initializing it.");
+			//this.kale = new KaleModel();
+			//this.kale.Initialization(this.iNumVerts,
+	        this.kale = new KaleModel(this.iNumVerts,
+					this.iNumTotal,
+					this.gloveArrayNodes,
+					this.gloveArrayEdges,
+					this.fnTrainingTriples, 
+					this.fnValidateTriples, 
+					this.fnTestingTriples, 
+					//this.fnTrainingRules,
+					this.fileExtension,
+					this.uniqueRelationTypes,
+					this.graph, this.config,
+					dataGenerator,
+					bcaNodes, bcaEdges);
+			
+	        logger.info("Start training the "
+	        		+ "Kale Model using Cochez method.");
+			this.kale.CochezLearn(true);
+        } catch (Exception ex) { ex.printStackTrace(); }
 	}
 	
 	public CoOccurrenceMatrix getKaleVectors() {
@@ -233,7 +320,43 @@ public class KaleRunner {
 
 		this.fnSaveFile = generateResultsFileDir();
 	}
+	
+	public CoOccurrenceMatrix getBcaNodes() {
+		return this.bcaNodes;
+	}
+	
+	public CoOccurrenceMatrix getBcaEdges() {
+		return this.bcaEdges;
+	}
 
+	
+	private static IOptimizer createOptimizer(final Configuration config, final CoOccurrenceMatrix coMatrix) {
+
+        CostFunction cf;
+        switch (config.getMethodEnum()) {
+            default:
+                throw new IllegalArgumentException("Invalid cost function");
+            case GLOVE:
+                cf = new GloveCost();
+                break;
+            case PGLOVE:
+                cf = new PGloveCost();
+                break;
+        }
+
+        switch(config.getOpt().getMethodEnum()) {
+            default:
+                throw new IllegalArgumentException("Invalid optimization method");
+            case ADAGRAD:
+            	if (coMatrix instanceof BookmarkColoringEdges) return new AdagradKale((BookmarkColoringEdges)coMatrix, config, cf);
+                return new Adagrad(coMatrix, config, cf);
+            case ADAM:
+                return new Adam(coMatrix, config, cf);
+            case AMSGRAD:
+            	if (coMatrix instanceof BookmarkColoringEdges) return new AMSGradKale((BookmarkColoringEdges)coMatrix, config, cf);
+                return new AMSGrad(coMatrix, config, cf);
+        }
+    }
 	
 	/**
 	 * Generates file directory without overwriting existing

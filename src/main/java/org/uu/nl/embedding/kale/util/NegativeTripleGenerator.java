@@ -1,6 +1,9 @@
 package org.uu.nl.embedding.kale.util;
 
-import org.uu.nl.embedding.kale.struct.Triple;
+import java.util.Random;
+
+import org.uu.nl.embedding.kale.struct.KaleMatrix;
+import org.uu.nl.embedding.kale.struct.KaleTriple;
 
 
 /**
@@ -9,55 +12,91 @@ import org.uu.nl.embedding.kale.struct.Triple;
  *
  */
 public class NegativeTripleGenerator {
-	public Triple PositiveTriple;
+	public KaleTriple PositiveTriple;
 	public int iNumberOfEntities;
 	public int iNumberOfRelation;
+	private int[] nonEmptyVerts;
+	private KaleMatrix matrixE;
 	
-	public NegativeTripleGenerator(Triple inPositiveTriple,
+	public NegativeTripleGenerator(KaleTriple inPositiveTriple,
 			int inNumberOfEntities, int inNumberOfRelation) {
 		PositiveTriple = inPositiveTriple;
 		iNumberOfEntities = inNumberOfEntities;
 		iNumberOfRelation = inNumberOfRelation;
 	}
 	
-	public Triple generateHeadNegTriple() throws Exception {
+	/*public NegativeTripleGenerator(Triple inPositiveTriple,
+			int inNumberOfEntities, int inNumberOfRelation,
+			int[] nonEmptyVerts) {
+		
+		PositiveTriple = inPositiveTriple;
+		iNumberOfEntities = inNumberOfEntities;
+		iNumberOfRelation = inNumberOfRelation;
+		this.nonEmptyVerts = nonEmptyVerts;
+	}*/
+	
+	public NegativeTripleGenerator(KaleTriple inPositiveTriple,
+			int inNumberOfEntities, int inNumberOfRelation,
+			KaleMatrix matrixE) {
+		
+		PositiveTriple = inPositiveTriple;
+		iNumberOfEntities = inNumberOfEntities;
+		iNumberOfRelation = inNumberOfRelation;
+		this.matrixE = matrixE;
+	}
+	
+	public KaleTriple generateHeadNegTriple() throws Exception {
 		int iPosHead = PositiveTriple.head();
 		int iPosTail = PositiveTriple.tail();
 		int iPosRelation = PositiveTriple.relation();
-		
+		Random random = new Random();
+
+		//int interval = this.nonEmptyVerts.length;
+		int interval = this.matrixE.rows();
 		int iNegHead = iPosHead;
-		Triple NegativeTriple = new Triple(iNegHead, iPosRelation, iPosTail);
+		
+		KaleTriple NegativeTriple = new KaleTriple(iNegHead, iPosRelation, iPosTail);
 		while (iNegHead == iPosHead) {
-			iNegHead = (int)(Math.random() * iNumberOfEntities);
-			NegativeTriple = new Triple(iNegHead, iPosRelation, iPosTail);
+			iNegHead = this.matrixE.getIdByRow(random.nextInt(interval));
+			NegativeTriple = new KaleTriple(iNegHead, iPosRelation, iPosTail);
 		}
 		return NegativeTriple;
 	}
 	
-	public Triple generateTailNegTriple() throws Exception {
+	public KaleTriple generateTailNegTriple() throws Exception {
+		Random random = new Random();
+		
+		int iPosHead = PositiveTriple.head();
+		int iPosTail = PositiveTriple.tail();
+		int iPosRelation = PositiveTriple.relation();
+
+		//int interval = this.nonEmptyVerts.length;
+		int interval = this.matrixE.rows();
+		int iNegTail = iPosTail;
+		
+		KaleTriple NegativeTriple = new KaleTriple(iPosHead, iPosRelation, iNegTail);
+		while (iNegTail == iPosTail) {
+			iNegTail = this.matrixE.getIdByRow(random.nextInt(interval));
+			NegativeTriple = new KaleTriple(iPosHead, iPosRelation, iNegTail);
+		}
+		return NegativeTriple;
+	}
+	
+	public KaleTriple generateRelNegTriple(KaleMatrix matrixR) throws Exception {
+		Random random = new Random();
+		
 		int iPosHead = PositiveTriple.head();
 		int iPosTail = PositiveTriple.tail();
 		int iPosRelation = PositiveTriple.relation();
 		
-		int iNegTail = iPosTail;
-		Triple NegativeTriple = new Triple(iPosHead, iPosRelation, iNegTail);
-		while (iNegTail == iPosTail) {
-			iNegTail = (int)(Math.random() * iNumberOfEntities);
-			NegativeTriple = new Triple(iPosHead, iPosRelation, iNegTail);
-		}
-		return NegativeTriple;
-	}
-	
-	public Triple generateRelNegTriple() throws Exception {
-		int iPosHead = PositiveTriple.head();
-		int iPosTail = PositiveTriple.tail();
-		int iPosRelation = PositiveTriple.relation();
+		int interval = matrixR.rows();
 		
 		int iNegRelation = iPosRelation;
-		Triple NegativeTriple = new Triple(iPosHead, iNegRelation, iPosTail);
+		KaleTriple NegativeTriple = new KaleTriple(iPosHead, iNegRelation, iPosTail);
 		while (iNegRelation == iPosRelation) {
-			iNegRelation = (int)(Math.random() * iNumberOfRelation);
-			NegativeTriple = new Triple(iPosHead, iNegRelation, iPosTail);
+			iNegRelation = this.matrixE.getIdByRow(random.nextInt(interval));
+			//iNegRelation = (int)(random.nextInt(iNumberOfRelation));
+			NegativeTriple = new KaleTriple(iPosHead, iNegRelation, iPosTail);
 		}
 		return NegativeTriple;
 	}

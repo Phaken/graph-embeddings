@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.TreeMap;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.log4j.Logger;
 import org.uu.nl.embedding.kale.util.StringSplitter;
 import org.uu.nl.embedding.logic.util.FormulaSet;
 
@@ -20,12 +21,18 @@ import org.uu.nl.embedding.logic.util.FormulaSet;
  *
  */
 public class RuleSet {
+    private final static Logger logger = Logger.getLogger("RuleSet");
+    
 	private int iNumberOfEntities;
 	private int iNumberOfRelations;
 	private int iNumberOfRules;
 	private ArrayList<FormulaSet> formulaSets;
 	public ArrayList<TripleRule> pRule = null;
+	
+	private boolean generalRules = false;
 	public HashMap<String, Integer> variableMap;
+
+	private HashMap<String, Integer> relationTypes = null;
 	
 	public RuleSet(int iEntities, int iRelations) throws Exception {
 		iNumberOfEntities = iEntities;
@@ -37,6 +44,25 @@ public class RuleSet {
 		this.variableMap.put("x", -1);
 		this.variableMap.put("y", -2);
 		this.variableMap.put("z", -3);
+	}
+	
+	public RuleSet(final ArrayList<String> rulesList,
+					final HashMap<String, Integer> relationTypes) throws Exception {
+		
+		iNumberOfEntities = rulesList.size();
+		iNumberOfRelations = 16;
+		this.relationTypes = relationTypes;
+		this.pRule = new ArrayList<TripleRule>();
+		this.formulaSets = new ArrayList<FormulaSet>();
+		
+		this.generalRules = false;
+		this.variableMap = new HashMap<String, Integer>();
+		this.variableMap.put("x", -1);
+		this.variableMap.put("y", -2);
+		this.variableMap.put("z", -3);
+		
+		if (this.generalRules) loadGeneralTimeLogic(rulesList);
+		else loadTimeLogic(rulesList);
 	}
 	
 	public int entities() {
@@ -58,7 +84,7 @@ public class RuleSet {
 		return pRule.get(iID);
 	}
 	
-	public void loadTimeLogic(final String fnInput) throws Exception {
+	public void loadGeneralTimeLogic(final String fnInput) throws Exception {
 		//BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(fnInput), "UTF-8"));
 		
 		/*
@@ -79,6 +105,7 @@ public class RuleSet {
 				
 				this.formulaSets.add(counter, new FormulaSet(line));
 				String[] tokens = formulaSets.get(counter).getTokens();
+				String[] operators = this.formulaSets.get(counter).getOperators();
 
 				if (tokens.length != 6 && tokens.length != 9) {
 					String str = "";
@@ -108,7 +135,7 @@ public class RuleSet {
 				if (iFstRelation < 0) {
 					throw new Exception("Loading error in RuleSet: 1st relation ID out of range");
 				}*/
-				Triple fstTriple = new Triple(iFstHead, iFstRelation, iFstTail);
+				KaleTriple fstTriple = new KaleTriple(iFstHead, iFstRelation, iFstTail);
 				
 				int iSndHead = this.variableMap.get(tokens[3]);
 				String iSndRelation = tokens[4];
@@ -130,10 +157,14 @@ public class RuleSet {
 				if (iSndRelation < 0) {
 					throw new Exception("Loading error in RuleSet: 2nd relation ID out of range");
 				}*/
-				Triple sndTriple = new Triple(iSndHead, iSndRelation, iSndTail);
+				KaleTriple sndTriple = new KaleTriple(iSndHead, iSndRelation, iSndTail);
 				
 				if (tokens.length == 6) {
-					pRule.add(new TripleRule(fstTriple, sndTriple));
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0]));
+					}
 				}
 				else{
 					int iTrdHead = this.variableMap.get(tokens[6]);
@@ -156,9 +187,13 @@ public class RuleSet {
 					if (iTrdRelation < 0) {
 						throw new Exception("Loading error in RuleSet: 3rd relation ID out of range");
 					}*/
-					Triple trdTriple = new Triple(iTrdHead, iTrdRelation, iTrdTail);
+					KaleTriple trdTriple = new KaleTriple(iTrdHead, iTrdRelation, iTrdTail);
 					
-					this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple));
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1]));
+					}
 				}
 				
 				counter++;
@@ -166,7 +201,143 @@ public class RuleSet {
 			reader.close();
 		} catch (Exception e) { e.printStackTrace(); }
 		
+		if (this.relationTypes == null) {
+			logger.info("Relation types not yet instantiated.");
+		} else {
+			mergeRelationTypeMaps();
+		}
+		
 		this.iNumberOfRules = pRule.size();
+	}
+	
+	public void loadTimeLogic(ArrayList<String> rulesList) throws Exception {
+		
+		String line = "";
+		try {
+			for (int idx = 0; idx < rulesList.size(); idx++) {
+				line = rulesList.get(idx);
+				
+				this.formulaSets.add(idx, new FormulaSet(line));
+				String[] tokens = formulaSets.get(idx).getTokens();
+				String[] operators = formulaSets.get(idx).getOperators();
+	
+				if (operators.length != 1 && operators.length != 2) {
+					String str = "";
+					for (String token : tokens) str += token + " ";
+					throw new Exception("Loading error in RuleSet: data format incorrect. "
+							+ "Expected 6 or 9, but received " + tokens.length + ". With the following values:\n"
+							+ str);
+				}
+
+				
+				int iFstHead = Integer.parseInt(tokens[0]);
+				String iFstRelation = tokens[1];
+				int iFstTail = Integer.parseInt(tokens[2]);
+
+				
+				KaleTriple fstTriple = new KaleTriple(iFstHead, iFstRelation, iFstTail, this.relationTypes);
+				
+				int iSndHead = Integer.parseInt(tokens[3]);
+				String iSndRelation = tokens[4];
+				int iSndTail = Integer.parseInt(tokens[5]);
+				
+				KaleTriple sndTriple = new KaleTriple(iSndHead, iSndRelation, iSndTail, this.relationTypes);
+				
+				if (operators.length == 1) {
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0]));
+					}
+				}
+				else{
+					int iTrdHead = Integer.parseInt(tokens[6]);
+					String iTrdRelation = tokens[7];
+					int iTrdTail = Integer.parseInt(tokens[8]);
+					KaleTriple trdTriple = new KaleTriple(iTrdHead, iTrdRelation, iTrdTail, this.relationTypes);
+					
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1]));
+					}
+				}
+			}
+		} catch (Exception e) { 
+			System.out.println("EXCEPTION in: "+line +"\n");
+			e.printStackTrace();
+		}
+		
+		if (this.relationTypes == null) {
+			logger.info("Relation types not yet instantiated.");
+		} else {
+			mergeRelationTypeMaps();
+		}
+		
+		this.iNumberOfRules = pRule.size();
+	}
+	
+	public void loadGeneralTimeLogic(ArrayList<String> rulesList) throws Exception {
+		
+		String line = "";
+		try {
+			for (int idx = 0; idx < rulesList.size(); idx++) {
+				line = rulesList.get(idx);
+				
+				this.formulaSets.add(idx, new FormulaSet(line));
+				String[] tokens = formulaSets.get(idx).getTokens();
+				String[] operators = formulaSets.get(idx).getOperators();
+	
+				if (tokens.length != 6 && tokens.length != 9) {
+					String str = "";
+					for (String token : tokens) str += token + " ";
+					throw new Exception("Loading error in RuleSet: data format incorrect. "
+							+ "Expected 6 or 9, but received " + tokens.length + ". With the following values:\n"
+							+ str);
+				}
+				
+				int iFstHead = this.variableMap.get(tokens[0]);
+				String iFstRelation = tokens[1];
+				int iFstTail = this.variableMap.get(tokens[2]);
+				
+				KaleTriple fstTriple = new KaleTriple(iFstHead, iFstRelation, iFstTail);
+				
+				int iSndHead = this.variableMap.get(tokens[3]);
+				String iSndRelation = tokens[4];
+				int iSndTail = this.variableMap.get(tokens[5]);
+				
+				KaleTriple sndTriple = new KaleTriple(iSndHead, iSndRelation, iSndTail);
+				
+				if (tokens.length == 6) {
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0]));
+					}
+				}
+				else{
+					int iTrdHead = this.variableMap.get(tokens[6]);
+					String iTrdRelation = tokens[7];
+					int iTrdTail = this.variableMap.get(tokens[8]);
+					KaleTriple trdTriple = new KaleTriple(iTrdHead, iTrdRelation, iTrdTail);
+					
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1]));
+					}
+				}
+			}
+		} catch (Exception e) { e.printStackTrace(); }
+		
+		if (this.relationTypes == null) {
+			logger.info("Relation types not yet instantiated.");
+		} else {
+			mergeRelationTypeMaps();
+		}
+		
+		this.iNumberOfRules = pRule.size();
+		
 	}
 
 	
@@ -185,6 +356,7 @@ public class RuleSet {
 				
 				String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
 						.split("\t() ", line));
+				String[] operators = this.formulaSets.get(counter).getOperators();
 				
 				if (tokens.length != 6 && tokens.length != 9) {
 					String str = "";
@@ -213,7 +385,7 @@ public class RuleSet {
 				if (iFstRelation < 0) {
 					throw new Exception("Loading error in RuleSet: 1st relation ID out of range");
 				}
-				Triple fstTriple = new Triple(iFstHead, iFstRelation, iFstTail);
+				KaleTriple fstTriple = new KaleTriple(iFstHead, iFstRelation, iFstTail);
 				
 				int iSndHead = Integer.parseInt(tokens[3]);
 				int iSndRelation = Integer.parseInt(tokens[4]);
@@ -234,10 +406,14 @@ public class RuleSet {
 				if (iSndRelation < 0) {
 					throw new Exception("Loading error in RuleSet: 2nd relation ID out of range");
 				}
-				Triple sndTriple = new Triple(iSndHead, iSndRelation, iSndTail);
+				KaleTriple sndTriple = new KaleTriple(iSndHead, iSndRelation, iSndTail);
 				
 				if (tokens.length == 6){
-					pRule.add(new TripleRule(fstTriple, sndTriple));
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, operators[0]));
+					}
 				}
 				else{
 					int iTrdHead = Integer.parseInt(tokens[7]);
@@ -259,70 +435,129 @@ public class RuleSet {
 					if (iTrdRelation < 0) {
 						throw new Exception("Loading error in RuleSet: 3rd relation ID out of range");
 					}
-					Triple trdTriple = new Triple(iTrdHead, iTrdTail, iTrdRelation);
+					KaleTriple trdTriple = new KaleTriple(iTrdHead, iTrdTail, iTrdRelation);
 					
-					pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple));
+
+					if (this.relationTypes != null) {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1], this.relationTypes));
+					} else {
+						this.pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operators[0], operators[1]));
+					}
 				}
 				counter++;
 			}
 		} catch (Exception e) { e.printStackTrace(); }
+
+		if (this.relationTypes == null) {
+			logger.info("Relation types not yet instantiated.");
+		} else {
+			mergeRelationTypeMaps();
+		}
 		
 		iNumberOfRules = pRule.size();
 		reader.close();
 	}
 	
-	public void randomShuffle() {
+	public void randomShuffle() throws Exception {
 		TreeMap<Double, TripleRule> tmpMap = new TreeMap<Double, TripleRule>();
-		for (int iID = 0; iID < iNumberOfRules; iID++) {
-			int m = pRule.get(iID).getFirstTriple().head();
-			int s = pRule.get(iID).getFirstTriple().relation();
-			int n = pRule.get(iID).getFirstTriple().tail();
-			Triple fstTriple = new Triple(m, s, n);
-			int p = pRule.get(iID).getSecondTriple().head();
-			int t = pRule.get(iID).getSecondTriple().relation();
-			int q = pRule.get(iID).getSecondTriple().tail();
-			Triple sndTriple = new Triple(p, t, q);
-			if(pRule.get(iID).getThirdTriple()==null) {
-				tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple));
+		try {
+			for (int iID = 0; iID < iNumberOfRules; iID++) {
+				int m = pRule.get(iID).getFirstTriple().head();
+				int s = pRule.get(iID).getFirstTriple().relation();
+				int n = pRule.get(iID).getFirstTriple().tail();
+				KaleTriple fstTriple = new KaleTriple(m, s, n);
+				int p = pRule.get(iID).getSecondTriple().head();
+				int t = pRule.get(iID).getSecondTriple().relation();
+				int q = pRule.get(iID).getSecondTriple().tail();
+				KaleTriple sndTriple = new KaleTriple(p, t, q);
+				String operatorFrstScnd = pRule.get(iID).operatorFrstScnd();
+				String operatorScndThrd = pRule.get(iID).operatorScndThrd();
+				if(pRule.get(iID).getThirdTriple()==null) {
+					if (this.relationTypes != null) {
+						tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple, operatorFrstScnd, this.relationTypes));
+					} else {
+						tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple, operatorFrstScnd));
+					}
+				}
+				else{
+					int a = pRule.get(iID).getThirdTriple().head();
+					int b = pRule.get(iID).getThirdTriple().relation();
+					int c = pRule.get(iID).getThirdTriple().tail();
+					KaleTriple trdTriple = new KaleTriple(a, b, c);
+					if (this.relationTypes != null) {
+						tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple, trdTriple, operatorFrstScnd, operatorScndThrd, this.relationTypes));
+					} else {
+						tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple, trdTriple, operatorFrstScnd, operatorScndThrd));
+					}
+				}
 			}
-			else{
-				int a = pRule.get(iID).getThirdTriple().head();
-				int b = pRule.get(iID).getThirdTriple().relation();
-				int c = pRule.get(iID).getThirdTriple().tail();
-				Triple trdTriple = new Triple(a, b, c);
-				tmpMap.put(Math.random(), new TripleRule(fstTriple, sndTriple, trdTriple));
+			
+			pRule = new ArrayList<TripleRule>();
+			Iterator<Double> iterValues = tmpMap.keySet().iterator();
+			while (iterValues.hasNext()) {
+				double dRand = iterValues.next();
+				TripleRule rule = tmpMap.get(dRand);
+				String operatorFrstScnd = rule.operatorFrstScnd();
+				String operatorScndThrd = rule.operatorScndThrd();
+				int m = rule.getFirstTriple().head();
+				int s = rule.getFirstTriple().relation();
+				int n = rule.getFirstTriple().tail();
+				KaleTriple fstTriple = new KaleTriple(m, s, n);
+				int p = rule.getSecondTriple().head();
+				int t = rule.getSecondTriple().relation();
+				int q = rule.getSecondTriple().tail();
+				KaleTriple sndTriple = new KaleTriple(p, t, q);
+				if(rule.getThirdTriple()==null) {
+					if (this.relationTypes != null) {
+						pRule.add(new TripleRule(fstTriple, sndTriple, operatorFrstScnd, this.relationTypes));
+					} else {
+						pRule.add(new TripleRule(fstTriple, sndTriple, operatorFrstScnd));
+					}
+				}
+				else{
+					int a = rule.getThirdTriple().head();
+					int b = rule.getThirdTriple().relation();
+					int c = rule.getThirdTriple().tail();
+					KaleTriple trdTriple = new KaleTriple(a, b, c);
+					if(rule.getThirdTriple()==null) {
+						if (this.relationTypes != null) {
+							pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operatorFrstScnd, operatorScndThrd, this.relationTypes));
+						} else {
+							pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple, operatorFrstScnd, operatorScndThrd));
+						}
+					}
+				}
 			}
-		}
-		
-		pRule = new ArrayList<TripleRule>();
-		Iterator<Double> iterValues = tmpMap.keySet().iterator();
-		while (iterValues.hasNext()) {
-			double dRand = iterValues.next();
-			TripleRule rule = tmpMap.get(dRand);
-			int m = rule.getFirstTriple().head();
-			int s = rule.getFirstTriple().relation();
-			int n = rule.getFirstTriple().tail();
-			Triple fstTriple = new Triple(m, s, n);
-			int p = rule.getSecondTriple().head();
-			int t = rule.getSecondTriple().relation();
-			int q = rule.getSecondTriple().tail();
-			Triple sndTriple = new Triple(p, t, q);
-			if(rule.getThirdTriple()==null) {
-				pRule.add(new TripleRule(fstTriple, sndTriple));
+			
+			if (this.relationTypes == null) {
+				logger.info("Relation types not yet instantiated.");
+			} else {
+				mergeRelationTypeMaps();
 			}
-			else{
-				int a = rule.getThirdTriple().head();
-				int b = rule.getThirdTriple().relation();
-				int c = rule.getThirdTriple().tail();
-				Triple trdTriple = new Triple(a, b, c);
-				pRule.add(new TripleRule(fstTriple, sndTriple, trdTriple));
-			}
-		}
-		iNumberOfRules = pRule.size();
-		tmpMap.clear();
+			
+			iNumberOfRules = pRule.size();
+			tmpMap.clear();
+		} catch (Exception e) { e.printStackTrace(); }
 	}
 	
-	public ArrayList<FormulaSet> getFormulaSets() {
+	public ArrayList<FormulaSet> getFormulaSets()  throws Exception {
+		if (this.formulaSets == null || this.formulaSets.size() == 0) throw new Exception("Operators not initialized.");
 		return this.formulaSets;
+	}
+
+	public void setRelationTypes(final HashMap<String, Integer> relationTypes) {
+		this.relationTypes = relationTypes;
+		
+		for (int i = 0; i < pRule.size(); i++) {
+			pRule.get(i).setRelationTypes(this.relationTypes);
+		}
+		logger.info("Relation types succesfully instantiated.");
+	}
+	
+	private void mergeRelationTypeMaps() {
+		for (TripleRule tRule : this.pRule) {
+			this.relationTypes.putAll(tRule.getRelationTypes());
+		}
+		
 	}
 }

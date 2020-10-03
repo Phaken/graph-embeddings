@@ -3,6 +3,7 @@ package org.uu.nl.embedding.bca.util;
 import org.uu.nl.embedding.util.config.Configuration;
 import org.uu.nl.embedding.util.rnd.ExtendedRandom;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -102,6 +103,38 @@ public class BCV extends HashMap<Integer, Float> {
 	}
 
 	/**
+	 * Changes the values to sum to 1
+	 */
+	public void smooth() {
+		remove(rootNode);
+		
+		final float sum = sum();
+		float value;
+		ArrayList<Integer> deleteLst = new ArrayList<Integer>();
+		for(Entry<Integer, Float> entry : entrySet()) {
+			value = entry.getValue() / sum;
+			
+			if (value < 1e-6f) deleteLst.add(entry.getKey());
+			entry.setValue(value);
+		}
+		for (int key : deleteLst) this.remove(key);
+	}
+
+	public void toUnity(boolean other) {
+		remove(rootNode);
+
+		float sum = 0f;
+		for(Entry<Integer, Float> entry : entrySet()) {
+			//if (entry.getValue() < 0) System.out.println("BCV.toUnity() - negavtive entry.getValue(): "+entry.getValue());
+			sum += (float) entry.getValue();
+		}
+		for(Entry<Integer, Float> entry : entrySet()) {
+			entry.setValue(entry.getValue() / sum);
+			//if (entry.getValue() < 0) System.out.println("BCV.toUnity() - negavtive entry.getValue(): "+entry.getValue());
+		}
+	}
+
+	/**
 	 * @return The minimum value for this BCV
 	 */
 	private float min() {
@@ -134,8 +167,22 @@ public class BCV extends HashMap<Integer, Float> {
 	 * but in reverse order)
 	 * @param other The other BCV
 	 */
-	public void merge(BCV other) {
+	public BCV merge(BCV other) {
 		other.forEach((key, value2) -> this.merge(key, value2, Float::sum));
+		return this;
+	}
+	
+
+	public BCV merge(BCV other, boolean bool) {
+		float value;
+		for (Entry<Integer, Float> entry : other.entrySet()) {
+			value = 0;
+			if (this.containsKey(entry.getKey())) value = this.get(entry.getKey());
+			value += entry.getValue();
+			if (value < 0) System.out.println("BCV.merge() - Xij negative: "+value);
+			this.put(entry.getKey(), value);
+		}
+		return this;
 	}
 	
 

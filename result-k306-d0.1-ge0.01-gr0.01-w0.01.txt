@@ -1,0 +1,2 @@
+Complete iteration #0:
+------Current MRR:1.0	Current Hits@10:25850.0

@@ -13,6 +13,7 @@ import org.uu.nl.embedding.bca.util.BCV;
 import org.uu.nl.embedding.convert.util.InEdgeNeighborhoodAlgorithm;
 import org.uu.nl.embedding.convert.util.NodeInfo;
 import org.uu.nl.embedding.convert.util.OutEdgeNeighborhoodAlgorithm;
+import org.uu.nl.embedding.kale.util.DataGenerator;
 import org.uu.nl.embedding.util.CoOccurrenceMatrix;
 import org.uu.nl.embedding.util.InMemoryRdfGraph;
 import org.uu.nl.embedding.util.config.Configuration;
@@ -59,11 +60,18 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 	private final int[][] outVertex;
 	private final int[][] inEdge;
 	private final int[][] outEdge;
+	private final int dictSize;
 	private final ArrayList<Integer> allVecs;
 	private int[][] allOut;
 	private int[][] allIn;
 	private final Map<Integer, Integer> context2focus;
 	private final Map<Integer, Integer> focus2context;
+	
+
+	TreeMap<Integer, int[]> neighborVertsIn;
+	TreeMap<Integer, int[]> neighborVertsOut;
+	TreeMap<Integer, int[]> neighborEdgesIn;
+	TreeMap<Integer, int[]> neighborEdgesOut;
 	
 	public TreeMap<Integer, Integer> edgeIdMap;
 	public TreeMap<Integer, Integer> edgeIdTypeMap;
@@ -139,6 +147,7 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 		this.outVertex = graph.getOutNeighborhoods();
 		this.inEdge = new InEdgeNeighborhoodAlgorithm(config).compute(graph);
 		this.outEdge = new OutEdgeNeighborhoodAlgorithm(config).compute(graph);
+		this.dictSize = DataGenerator.calculateDictSize(this.outVertex);
 
 		CompletionService<BCV> completionService = new ExecutorCompletionService<>(es);
 
@@ -184,7 +193,7 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 	 * @param config
 	 * @param nonDefault
 	 */
-	public BookmarkColoring(final InMemoryRdfGraph graph, final Configuration config, final boolean nonDefault) {
+	public BookmarkColoring(final InMemoryRdfGraph graph, final Configuration config, final boolean nonDefault) throws Exception {
 		
 		logger = Logger.getLogger("KALE - BookmarkColoring");
         logger.info("Starting Kale Bookmark Coloring.");
@@ -201,8 +210,8 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 		
 		this.allVecs = new ArrayList<Integer>();
 		this.bcvMaxVals = new HashMap<String, Double>();
-		nonEmptyBcvs = new ArrayList<BCV>();
-		BCVs = new ArrayList<BCV>();
+		this.nonEmptyBcvs = new ArrayList<BCV>();
+		this.BCVs = new ArrayList<BCV>();
 		this.nonDefault = nonDefault;
 		
         logger.info("Reading configuration...");
@@ -212,8 +221,24 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 		this.outVertex = graph.getOutNeighborhoods();
 		this.inEdge = new InEdgeNeighborhoodAlgorithm(config).compute(graph);
 		this.outEdge = new OutEdgeNeighborhoodAlgorithm(config).compute(graph);
+		this.dictSize = DataGenerator.calculateDictSize(this.outVertex);
         logger.info("Edges read ==> in-edges are: " +this.inEdge.length+ " & out-edges are: " +this.outEdge.length);
 
+        /*
+         * START TEMP
+         *
+        System.out.println("BookmarkColoring constructor - Vertex 8 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(8)) + "\n");
+        System.out.println("BookmarkColoring constructor - Vertex 70 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(70)) + "\n");
+        System.out.println("BookmarkColoring constructor - Vertex 107 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(107)) + "\n");
+        System.out.println("BookmarkColoring constructor - Vertex 141 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(141)) + "\n");
+        System.out.println("BookmarkColoring constructor - Vertex 675 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(675)) + "\n");
+        System.out.println("BookmarkColoring constructor - Vertex 16523 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(16523)) + "\n");*/
+        System.out.println("BookmarkColoring constructor - Vertex 40947 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(40947)) + "\n");
+        System.out.println("BookmarkColoring constructor - Vertex 2486 type: " + NodeInfo.fromByte((byte) this.graph.getVertexTypeProperty().getValueAsInt(2486)) + "\n");
+        /*
+         * END TEMP
+         */
+        
 		int notSkipped = 0;
 
 		logger.info("Start selecting vertices to compute BCVs.");
@@ -229,6 +254,8 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 					if(output.outputUriNodes() && (output.getUri().isEmpty() || output.getUri().stream().anyMatch(key::startsWith))) {
 						performBCA[i] = true;
 						notSkipped++;
+						/*if (vert == 70 || vert == 107 || vert == 675)
+							System.out.println("BookmarkColoring constructor - Vertex " + vert + " is added to performBCA.\n\n");*/
 					}
 					break;
 				case BLANK:
@@ -241,6 +268,8 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 					if(output.outputLiteralNodes() && (output.getLiteral().isEmpty() || output.getLiteral().stream().anyMatch(key::startsWith))) {
 						performBCA[i] = true;
 						notSkipped++;
+						/*if (vert == 141 || vert == 16523)
+							System.out.println("BookmarkColoring constructor - Vertex " + vert + " is added to performBCA.\n\n");*/
 					}
 					break;
 				}
@@ -258,6 +287,12 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 		this.coOccurrenceIdx_J_edge = new ArrayList<>();
 		this.coOccurrenceValues_edge = new ArrayList<>();
 		this.coOccurrenceCount_edge = 0;
+		
+		ArrayList<TreeMap<Integer, int[]>> edgeNeighbors = DataGenerator.determineEdgeNeighbors(inVertex, outVertex, inEdge, outEdge);
+		neighborVertsIn = edgeNeighbors.get(0);
+		neighborVertsOut = edgeNeighbors.get(1);
+		neighborEdgesIn = edgeNeighbors.get(2);
+		neighborEdgesOut = edgeNeighbors.get(3);
 
 		final int numThreads = config.getThreads();
 
@@ -282,13 +317,16 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 			/*
 			 * START TEMP
 			 */
+			if (bookmark == 70 || bookmark == 107 || bookmark == 141) 
+				System.out.println("BookmarkColoring constructor - Bookmark no.: " + bookmark + " found.");
 			//if (bookmark > this.outVertex.length) System.out.println("BookmarkColoring constructor - Starting BCV for EdgeID.");
 			//else System.out.println("BookmarkColoring constructor - Meh.");
 			/*
 			 * END TEMP
 			 */
-			context2focus.put(bookmark, j);
-			focus2context.put(j, bookmark);
+			
+/*Verplaatsen naar progressThroughMatrix?*/context2focus.put(bookmark, j);
+/*Verplaatsen naar progressThroughMatrix?*/focus2context.put(j, bookmark);
 			j++;
 
 			// Choose a graph neighborhood algorithm
@@ -299,7 +337,7 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 							alpha, epsilon,
 							this.inVertex, this.outVertex, this.inEdge, this.outEdge));
 					if(!loggerInfoProvided) { 
-						logger.info("Generated a DIRECTED BCV.");
+						logger.info("Generated DIRECTED BCV.");
 						loggerInfoProvided = true;
 					}
 					break;
@@ -310,36 +348,6 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 							inVertex, outVertex, inEdge, outEdge));
 					if(!loggerInfoProvided) { 
 						logger.info("Generated a UNDIRECTED BCV.");
-						loggerInfoProvided = true;
-					}
-					break;
-				case KALEUNDIRECTED:
-					completionService.submit(new KaleUndirectedWeighted(
-							graph, bookmark,
-							alpha, epsilon,
-							inVertex, outVertex, inEdge, outEdge));
-					if(!loggerInfoProvided) { 
-						logger.info("Generated a KALEUNDIRECTED BCV.");
-						loggerInfoProvided = true;
-					}
-					break;
-				case KALESEPERATED:
-					completionService.submit(new KaleUndirectedWeightedSeperated(
-							graph, bookmark,
-							alpha, epsilon,
-							inVertex, outVertex, inEdge, outEdge));
-					if(!loggerInfoProvided) { 
-						logger.info("Generated a KALESEPERATED BCV.");
-						loggerInfoProvided = true;
-					}
-					break;
-				case KALENODEBASED:
-					completionService.submit(new KaleUndirectedWeightedNodeBased(
-							graph, bookmark,
-							alpha, epsilon,
-							inVertex, outVertex, inEdge, outEdge));
-					if(!loggerInfoProvided) { 
-						logger.info("Generated a KALENODEBASED BCV.");
 						loggerInfoProvided = true;
 					}
 					break;
@@ -453,7 +461,7 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 					/*
 					 * START TEMP
 					 */
-					if (bcv.getRootNode() > this.outVertex.length) System.out.println("Edge node added to BCV.");
+					//if (bcv.getRootNode() > this.outVertex.length) System.out.println("BookmarkColoring.progressThroughMatrix() Edge node added to BCV.");
 					//else System.out.println("Node node added.");
 					/*
 					 * END TEMP
@@ -486,10 +494,10 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
 				logger.info("Failed to take BCV and add it to the matrix. 'Received' was: " + received);
 				e.printStackTrace();
 			}
-			determineAllVecs();
+			determineAllInOut();
 		
 		} finally {
-			logger.info(" 'Received' final value = " + received + ". ExecutorService shutting down.");
+			logger.info("'Received' final value = " + received + ". ExecutorService shutting down.");
 			es.shutdown();
 		}
 		
@@ -547,7 +555,6 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
     	try {
 			NumericalProperty edgeTypes = this.graph.getEdgeTypeProperty();
 	        final TreeMap<Integer, Integer> edgeTypeMap = new TreeMap<>();
-	        int dictSize =  this.outVertex.length + this.outEdge.length;
 	        
 	        int[] edges;
 	        int edge; int tempCntr = 0;
@@ -579,7 +586,6 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
     	try {
 			NumericalProperty edgeTypes = this.graph.getEdgeTypeProperty();
 	        final TreeMap<Integer, Integer> edgeTypeMap = new TreeMap<Integer, Integer>();
-	        int dictSize =  this.outVertex.length + this.outEdge.length;
 	        
 	        int[] edges;
 	        int edge; int tempCntr = 0;
@@ -630,12 +636,12 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
     	return new int[0]; 
     }
     
-    public void determineAllVecs() {
-    	this.allOut = new int[this.outVertex.length+this.outEdge.length][];
-    	this.allIn = new int[this.inVertex.length+this.inEdge.length][];
+    public void determineAllInOut() {
+    	this.allOut = new int[this.dictSize][];
+    	this.allIn = new int[this.dictSize][];
     	
     	int[] neighborsOut, neighborsIn;
-    	for (int i = 0; i < allOut.length; i++) {
+    	for (int i = 0; i < this.outVertex.length; i++) {
 
 			neighborsOut = new int[0];
 			neighborsIn = new int[0];
@@ -647,16 +653,26 @@ public class BookmarkColoring implements CoOccurrenceMatrix {
     				neighborsIn = this.inVertex[i];
     				
     			} else if (this.allVecs.get(i) >= this.outVertex.length) {
-    				neighborsOut = this.outEdge[i];
-    				neighborsIn = this.inEdge[i];
+    				neighborsOut = this.neighborEdgesOut.get(i);
+    				neighborsIn = this.neighborEdgesIn.get(i);
     				
     			}
     		}
-
         	this.allOut[i] = neighborsOut;
         	this.allIn[i] = neighborsIn;
     	}
-    		
+    	int edge;
+    	int[] neighbors;
+		for (Map.Entry entry : this.neighborEdgesIn.entrySet()) {
+			edge = (int) entry.getKey();
+			neighbors = (int[]) entry.getValue();
+        	this.allIn[edge] = neighbors;
+		}
+		for (Map.Entry entry : this.neighborEdgesOut.entrySet()) {
+			edge = (int) entry.getKey();
+			neighbors = (int[]) entry.getValue();
+        	this.allOut[edge] = neighbors;
+    	}
     }
     
     public int[][] getAllOutVecs() {

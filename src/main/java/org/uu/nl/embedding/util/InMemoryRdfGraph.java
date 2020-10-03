@@ -1,6 +1,7 @@
 package org.uu.nl.embedding.util;
 
 import org.apache.log4j.Logger;
+import org.uu.nl.embedding.kale.struct.TripleSet;
 
 import grph.in_memory.InMemoryGrph;
 import grph.properties.NumericalProperty;
@@ -13,6 +14,7 @@ public class InMemoryRdfGraph extends InMemoryGrph {
 
     private final NumericalProperty edgeTypeProperty, edgeWeightProperty, vertexTypeProperty;
     private final StringProperty literalPredicateProperty;
+    private TripleSet tripleSet;
 
     public InMemoryRdfGraph() {
         super();
@@ -38,5 +40,13 @@ public class InMemoryRdfGraph extends InMemoryGrph {
 
     public NumericalProperty getVertexTypeProperty() {
         return vertexTypeProperty;
+    }
+    
+    public void setTripleSet(final TripleSet tripleSet) {
+    	this.tripleSet = tripleSet;
+    }
+    
+    public TripleSet getTripleSet() {
+    	return this.tripleSet;
     }
 }

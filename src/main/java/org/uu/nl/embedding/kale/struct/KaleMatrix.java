@@ -10,9 +10,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 import org.uu.nl.embedding.kale.util.StringSplitter;
+import org.uu.nl.embedding.util.config.Configuration;
+
+import me.tongfei.progressbar.ProgressBar;
 
 
 /**
@@ -22,25 +26,107 @@ import org.uu.nl.embedding.kale.util.StringSplitter;
  */
 public class KaleMatrix {
 
-    private static Logger logger = Logger.getLogger("SparseKaleMatrix");
+    private static Logger logger = Logger.getLogger(KaleMatrix.class);
 	
 	private int[][] pNodeID = null;
 	private double[][] pData = null;
 	private double[][] pSumData = null;
+	
+
+	private float[] gloveArray;
+	private int[] orderedIDs;
+	private int iDim;
 	
 	private int iNumberOfRows;
 	private int iNumberOfColumns;
 	private int dictSize;
 	private HashMap<Integer, HashMap<Integer, Double>> rowMap;
 	private HashMap<Integer, HashMap<Integer, Double>> rowSumMap;
+	private ArrayList<Integer> rowPositions;
+	
+	private boolean isRelationMatrix;
 	
 	public KaleMatrix(int iRows, int iColumns, int dictSize) {
 
 		this.iNumberOfRows = iRows;
 		this.iNumberOfColumns = iColumns;
+		this.iDim = iColumns;
 		this.dictSize = dictSize;
 		
-		rowMap = new HashMap<Integer, HashMap<Integer, Double>>(iRows);
+		this.rowMap = new HashMap<Integer, HashMap<Integer, Double>>(iRows);
+		this.rowSumMap = new HashMap<Integer, HashMap<Integer, Double>>(iRows);
+		this.rowPositions = new ArrayList<Integer>();
+		this.isRelationMatrix = false;
+	}
+	
+	public KaleMatrix(int iRows, int iColumns, int dictSize, final boolean isRelationMatrix) {
+		this(iRows, iColumns, dictSize);
+		if (isRelationMatrix) logger = Logger.getLogger("KaleMatrix-Edges");
+		else logger = Logger.getLogger("KaleMatrix-Nodes");
+		
+		this.isRelationMatrix = isRelationMatrix;
+	}
+	
+	public KaleMatrix(final float[] gloveArray, final int[] orderedIDs,
+						final int dim, final boolean isRelationMatrix) throws Exception  {
+		
+		if (isRelationMatrix) logger = Logger.getLogger("KaleMatrix-Edges");
+		else logger = Logger.getLogger("KaleMatrix-Nodes");
+		
+		
+		logger.info("Initializing KaleMatrix.");
+		if (gloveArray.length <= 0) throw new Exception("Received invalid GloVe array: "+gloveArray.length);
+		if (orderedIDs.length <= 0) throw new Exception("Received invalid GloVe array: "+orderedIDs.length);
+		if (dim <= 0) throw new Exception("Received invalid GloVe array: "+dim);
+
+		this.isRelationMatrix = isRelationMatrix;
+		this.gloveArray = gloveArray;
+		this.orderedIDs = orderedIDs;
+		this.iDim = dim;
+		logger.info("Arguments declarated:\n"
+				+ "\t- number of GloVe values is: "+this.gloveArray.length+"\n"
+				+ "\t- dimension is set at: "+this.iDim);
+		
+		this.rowMap = new HashMap<Integer, HashMap<Integer, Double>>();
+		this.rowSumMap = new HashMap<Integer, HashMap<Integer, Double>>();
+		this.rowPositions = new ArrayList<Integer>();
+		
+		fillGloveInMatrix();
+	}
+	
+	private void fillGloveInMatrix() throws Exception {
+		logger.info("Start filling matrix with GloVe values.");
+		
+		try (ProgressBar pb = Configuration.progressBar("KaleMatrix", this.orderedIDs.length, "rows.")) {
+			int id, index;
+			float value;
+			try {
+				for (int i = 0; i < this.orderedIDs.length; i++) {
+					id = this.orderedIDs[i];
+					//if (id % 5000 == 0) System.out.println("KaleMatrix.fillGloveInMatrix() - Adding row for id: "+id);
+					for (int j = 0; j < this.iDim; j++) {
+						index = ((id * this.iDim) + j);
+						//System.out.println("KaleMatrix.fillGloveInMatrix() - Adding at index: "+index);
+						value = this.gloveArray[index];
+						setNeighbor(i, j, (double) value);
+					}
+				}
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			} finally {
+				pb.step();
+			}
+			
+			for (int i = 0; i < this.orderedIDs.length; i++) {
+				for (int j = 0; j < this.iDim; j++) {
+						accumulatedByGradNeighbor(i, j);
+				}
+			}
+		} catch (Exception e) { e.printStackTrace(); }
+		
+		this.iNumberOfRows = rowMap.size();
+		this.iNumberOfColumns = this.iDim;
+		logger.info("Matrix initialized with following dimensions: " + this.iNumberOfRows + "x" +this.iNumberOfColumns);
 	}
 	
 	public int rows() {
@@ -55,17 +141,6 @@ public class KaleMatrix {
 		return this.dictSize;
 	}
 	
-	public double getNeighbor(int i, int j) throws Exception {
-		if (i < 0 || !rowMap.containsKey(i)) {
-			throw new Exception("get error in KaleMatrix: RowID out of range. Received: " + i);
-		}
-		if (j < 0 /*|| (!neighborIdxMap.get(i).containsKey(j))*/) {
-			throw new Exception("get error in KaleMatrix: ColumnID out of range. Received: " + j);
-		}
-		if (rowMap.get(i).containsKey(j)) return rowMap.get(i).get(j);
-		else return 0d;
-	}
-	
 	public void setNeighbor(int i, int j, double dValue) throws Exception {
 		if (i < 0) {
 			throw new Exception("set error in KaleMatrix: RowID out of range");
@@ -74,14 +149,33 @@ public class KaleMatrix {
 			throw new Exception("set error in KaleMatrix: ColumnID out of range");
 		}
 		
-		if (!rowMap.containsKey(i)) {
-			HashMap<Integer, Double> map = new HashMap<Integer, Double>();
-			map.put(j, dValue);
-			rowMap.put(i, map);
-			
-		} else {
-			rowMap.get(i).put(j, dValue);
+		try {			
+			if (!rowMap.containsKey(i)) {
+				HashMap<Integer, Double> map = new HashMap<Integer, Double>();
+				map.put(j, dValue);
+				rowMap.put(i, map);
+				rowPositions.add(i);
+
+				//System.out.println("KaleMatrix.setNeighbor() - New neighbor set.");
+				
+			} else {
+				rowMap.get(i).put(j, dValue);
+				//System.out.println("KaleMatrix.setNeighbor() - Neighbor set.");
+			}
+		} catch (Exception e) { e.printStackTrace(); }
+	}
+	
+	public double getNeighbor(int i, int j) throws Exception {
+		
+		if (i < 0 || !rowMap.containsKey(i)) {
+			throw new Exception("get error in KaleMatrix: RowID out of range. Received: " + i);
 		}
+		if (j < 0 /*|| (!neighborIdxMap.get(i).containsKey(j))*/) {
+			throw new Exception("get error in KaleMatrix: ColumnID out of range. Received: " + j);
+		}
+
+		if (rowMap.containsKey(i) && rowMap.get(i).containsKey(j)) return rowMap.get(i).get(j);
+		else return 0d;
 	}
 	
 	public void addValue(int i, int j, double dValue) throws Exception {
@@ -91,27 +185,30 @@ public class KaleMatrix {
 		if (j < 0 /*|| ( (!rowMap.get(i).containsKey(j)) && rowMap.get(i).size() >= iNumberOfColumns)*/ ) {
 			throw new Exception("add error in KaleMatrix: ColumnID out of range");
 		}
-
 		
-		if (!rowMap.containsKey(i)) {
-			HashMap<Integer, Double> map = new HashMap<Integer, Double>();
-			map.put(j, dValue);
-			rowMap.put(i, map);
-			
-		} else if (!rowMap.get(i).containsKey(j)) {
-			rowMap.get(i).put(j, dValue);
-			
-		} else {
-			rowMap.get(i).put(j, rowMap.get(i).get(j)+dValue);
-		}
+		try {			
+			if (!rowMap.containsKey(i)) {
+				HashMap<Integer, Double> map = new HashMap<Integer, Double>();
+				map.put(j, dValue);
+				rowMap.put(i, map);
+				rowPositions.add(i);
+				
+			} else if (!rowMap.get(i).containsKey(j)) {
+				rowMap.get(i).put(j, dValue);
+				
+			} else {
+				rowMap.get(i).put(j, rowMap.get(i).get(j)+dValue);
+			}
+		} catch (Exception e) { e.printStackTrace(); }
 	}
 	
 	public void accumulatedByGradNeighbor(int i, int j) throws Exception {
+		
 		if (i < 0 || !rowMap.containsKey(i)) {
-			throw new Exception("add error in KaleMatrix: RowID out of range");
+			throw new Exception("get error in KaleMatrix: RowID out of range. Received: " + i);
 		}
-		if (j < 0 /*|| (!rowMap.get(i).containsKey(j))*/ ) {
-			throw new Exception("add error in KaleMatrix: ColumnID out of range");
+		if (j < 0 /*|| (!neighborIdxMap.get(i).containsKey(j))*/) {
+			throw new Exception("get error in KaleMatrix: ColumnID out of range. Received: " + j);
 		}
 		
 		if (!rowSumMap.containsKey(i) || !rowSumMap.get(i).containsKey(j)) {
@@ -119,12 +216,23 @@ public class KaleMatrix {
 			double val = rowMap.get(i).get(j);
 			map.put(j, val*val);
 			rowMap.put(i, map);
-			
+			rowPositions.add(i);
+		
 		} else {
 			double curSum = rowSumMap.get(i).get(j);
 			double val = rowMap.get(i).get(j);
 			rowSumMap.get(i).put(j, (curSum + (val*val)) );
-;		}
+		}
+		
+	}
+	
+	/**
+	 * 
+	 * @param rowPos
+	 * @return
+	 */
+	public int getIdByRow(final int rowPos) {
+		return rowPositions.get(rowPos);
 	}
 	
 	
@@ -167,11 +275,13 @@ public class KaleMatrix {
 	}
 	
 	public double getSum(int i, int j) throws Exception {
-		if (i < 0 || !rowMap.containsKey(i)) {
-			throw new Exception("add error in KaleMatrix: RowID out of range");
+		accumulatedByGradNeighbor(i, j);
+		
+		if (i < 0 || !rowSumMap.containsKey(i)) {
+			throw new Exception("add error in KaleMatrix: RowID out of range. Received: " + i);
 		}
-		if (j < 0 || (!rowMap.get(i).containsKey(j))) {
-			throw new Exception("get error in KaleMatrix: ColumnID out of range");
+		if (j < 0 || (!rowSumMap.get(i).containsKey(j))) {
+			throw new Exception("get error in KaleMatrix: ColumnID out of range. Received: " + j);
 		}
 		return rowSumMap.get(i).get(j);
 	}

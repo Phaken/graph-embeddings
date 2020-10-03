@@ -12,8 +12,11 @@ public class FormulaSet {
 	private final Literal[] literals;
 	private String[] operators;
 	private final ArrayList<String> strLiterals;
+	private final String strRule;
 	
 	public FormulaSet(final String line) throws Exception {
+		this.strRule = line;
+
 		this.ruleSet = new TreeSet<String>();
 		
 		this.strLiterals = new ArrayList<String>();
@@ -26,12 +29,12 @@ public class FormulaSet {
 		for (int i = 0; i < tokens.length; i++) {
 			if (tokens[i] == "==>") {
 				implication = true;
-				ops[i] = tokens[i];
-				iOperators++;
+				ops[iOperators++] = tokens[i];
+				
 			}
 			if ((tokens[i].contains("!")) || (tokens[i].contains("&")) || (tokens[i].contains("|"))) {
-				ops[i] = tokens[i];
-				iOperators++;
+				ops[iOperators++] = tokens[i];
+				
 			}
 			
 			if (!tokens[i].contains("!") && !implication) nots.add(tokens[i]); 
@@ -52,6 +55,20 @@ public class FormulaSet {
 		this.literals = new Literal[this.strLiterals.size()];
 		for (int i = 0; i < this.strLiterals.size(); i++) {
 			this.literals[i] = new Literal(extractTerms(this.strLiterals.get(i)));
+			
+			/*if (this.strLiterals.get(i).contains("birth") && this.literals[i].name.contains("birth")) {
+				this.ruleSet.add(this.literals[i].name);
+				
+			} else if (this.strLiterals.get(i).contains("death") && this.literals[i].name.contains("death")) {
+				this.ruleSet.add(this.literals[i].name);
+				
+			} else if (this.strLiterals.get(i).contains("baptism") && this.literals[i].name.contains("baptism")) {
+				this.ruleSet.add(this.literals[i].name);
+				
+			} else if (this.strLiterals.get(i).contains("_is_same_or_before") && this.literals[i].name == "_is_same_or_before") {
+				this.ruleSet.add(this.literals[i].name);
+				
+			}*/
 			
 			if (this.strLiterals.get(i).contains("birth_date_approx") && this.literals[i].name == "birth_date_approx") {
 				this.ruleSet.add(this.literals[i].name);
@@ -100,7 +117,8 @@ public class FormulaSet {
 		return tokens;
 	}
 	
-	public String[] getOperators() {
+	public String[] getOperators() throws Exception {
+		if (this.operators == null || this.operators.length == 0) throw new Exception("Operators not initialized.");
 		return this.operators;
 	}
 	
@@ -113,6 +131,11 @@ public class FormulaSet {
 			tokens[counter++] = lit.tail;
 		}
 		return tokens;
+	}
+	
+	@Override
+	public String toString() {
+		return this.strRule;
 	}
 	
 	/**

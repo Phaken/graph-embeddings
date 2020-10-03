@@ -2,7 +2,7 @@ package org.uu.nl.embedding.kale.model;
 
 import java.util.ArrayList;
 
-import org.uu.nl.embedding.kale.struct.Triple;
+import org.uu.nl.embedding.kale.struct.KaleTriple;
 import org.uu.nl.embedding.kale.struct.TripleSet;
 import org.uu.nl.embedding.kale.struct.TripleRule;
 import org.uu.nl.embedding.kale.struct.KaleMatrix;
@@ -14,9 +14,9 @@ import org.uu.nl.embedding.kale.struct.KaleMatrix;
  *
  */
 public class StochasticUpdater {
-	public ArrayList<Triple> lstPosTriples;
-	public ArrayList<Triple> lstHeadNegTriples;
-	public ArrayList<Triple> lstTailNegTriples;
+	public ArrayList<KaleTriple> lstPosTriples;
+	public ArrayList<KaleTriple> lstHeadNegTriples;
+	public ArrayList<KaleTriple> lstTailNegTriples;
 	public ArrayList<TripleRule> lstRules;
 //	public ArrayList<Rule> lstFstRelNegRules;
 	public ArrayList<TripleRule> lstSndRelNegRules;
@@ -32,9 +32,9 @@ public class StochasticUpdater {
 	boolean isGlove;
 	
 	public StochasticUpdater(
-			ArrayList<Triple> inLstPosTriples,
-			ArrayList<Triple> inLstHeadNegTriples,
-			ArrayList<Triple> inLstTailNegTriples,
+			ArrayList<KaleTriple> inLstPosTriples,
+			ArrayList<KaleTriple> inLstHeadNegTriples,
+			ArrayList<KaleTriple> inLstTailNegTriples,
 			ArrayList<TripleRule> inlstRules,
 			ArrayList<TripleRule> inlstSndRelNegRules,
 			KaleMatrix inMatrixE, 
@@ -45,13 +45,19 @@ public class StochasticUpdater {
 			double inGammaR,
 			double inDelta,
 			double in_m_Weight,
-			final boolean isGlove) {
-		
+			final boolean isGlove) throws Exception {
+
+		if (inLstPosTriples == null || inLstPosTriples.size() == 0) throw new Exception("'Positive triples list' not properly initialized.");
 		lstPosTriples = inLstPosTriples;
+		if (inLstHeadNegTriples == null || inLstHeadNegTriples.size() == 0) throw new Exception("'Head negative triples list' not properly initialized.");
 		lstHeadNegTriples = inLstHeadNegTriples;
+		if (inLstTailNegTriples == null || inLstTailNegTriples.size() == 0) throw new Exception("'Tail negative triples list' not properly initialized.");
 		lstTailNegTriples = inLstTailNegTriples;
+		if (inlstRules == null || inlstRules.size() == 0) throw new Exception("'Rules list' not properly initialized.");
 		lstRules = inlstRules;
+		if (inlstSndRelNegRules == null || inlstSndRelNegRules.size() == 0) throw new Exception("'Second relation negative rules list' not properly initialized.");
 		lstSndRelNegRules = inlstSndRelNegRules;
+		
 		MatrixE = inMatrixE;
 		MatrixR = inMatrixR;
 		MatrixEGradient = inMatrixEGradient;
@@ -69,8 +75,9 @@ public class StochasticUpdater {
 	 * @author Euan Westenbroek
 	 */
 	public void stochasticIteration() throws Exception {
-		if (this.isGlove) stochasticIterationGlove();
+		//if (this.isGlove) stochasticIterationGlove();
 		//else stochasticIterationDefault();
+		stochasticIterationGlove();
 	}
 	
 	/**
@@ -86,10 +93,12 @@ public class StochasticUpdater {
 
 		// Loop through positive triples and calculate
 		// gradients.
-		for (int iID = 0; iID < this.lstPosTriples.size(); iID++) {
-			Triple PosTriple = this.lstPosTriples.get(iID);
-			Triple HeadNegTriple = this.lstHeadNegTriples.get(iID);
-			Triple TailNegTriple = this.lstTailNegTriples.get(iID);
+// #####
+		for (int iID = 0; iID < 1; iID++) {
+		//for (int iID = 0; iID < this.lstPosTriples.size(); iID++) {
+			KaleTriple PosTriple = this.lstPosTriples.get(iID);
+			KaleTriple HeadNegTriple = this.lstHeadNegTriples.get(iID);
+			KaleTriple TailNegTriple = this.lstTailNegTriples.get(iID);
 			
 			// Calculate gradient for head altered triple.
 			TripleGradient headGradient = new TripleGradient(
@@ -117,7 +126,8 @@ public class StochasticUpdater {
 		}
 
 		// Calculate gradient for altered rule.
-		for (int iID = 0; iID < this.lstRules.size(); iID++) {
+		for (int iID = 0; iID < 1; iID++) {
+		//for (int iID = 0; iID < this.lstRules.size(); iID++) {
 			TripleRule rule = this.lstRules.get(iID);
 			TripleRule sndRelNegrule = this.lstSndRelNegRules.get(iID);
 			
@@ -139,29 +149,31 @@ public class StochasticUpdater {
 		// Loop through entity-gradient matrix and
 		// update entity matrix.
 		for (int i = 0; i < this.MatrixE.rows(); i++) {
+			int iID = this.MatrixE.getIdByRow(i);
 			for (int j = 0; j < this.MatrixE.columns(); j++) {
 				
 				// Get current gradient.
-				double dValue = this.MatrixEGradient.getNeighbor(i, j);
-				this.MatrixEGradient.accumulatedByGradNeighbor(i, j);
+				double dValue = this.MatrixEGradient.getNeighbor(iID, j);
+				this.MatrixEGradient.accumulatedByGradNeighbor(iID, j);
 				// Calculate learned rate and add 1e-8 to prevent division by zero.
-				double dLearnRate = Math.sqrt(this.MatrixEGradient.getSum(i, j)) + 1e-8;
+				double dLearnRate = Math.sqrt(this.MatrixEGradient.getSum(iID, j)) + 1e-8;
 				double dUpdatedValue = (-1.0 * this.dGammaE * dValue / dLearnRate);
-				this.MatrixE.addValue(i, j, dUpdatedValue);
+				this.MatrixE.addValue(iID, j, dUpdatedValue);
 			}
 		}
 		// Loop through relation-gradient matrix and
 		// update relation matrix.
 		for (int i = 0; i < this.MatrixR.rows(); i++) {
+			int iID = this.MatrixE.getIdByRow(i);
 			for (int j = 0; j < this.MatrixR.columns(); j++) {
 
 				// Get current gradient.
-				double dValue = this.MatrixRGradient.getNeighbor(i, j);
-				this.MatrixRGradient.accumulatedByGradNeighbor(i, j);
+				double dValue = this.MatrixRGradient.getNeighbor(iID, j);
+				this.MatrixRGradient.accumulatedByGradNeighbor(iID, j);
 				// Calculate learned rate and add 1e-8 to prevent division by zero.
-				double dLearnRate = Math.sqrt(this.MatrixRGradient.getSum(i, j)) + 1e-8;
+				double dLearnRate = Math.sqrt(this.MatrixRGradient.getSum(iID, j)) + 1e-8;
 				double dUpdatedValue = (-1.0 * this.dGammaR * dValue / dLearnRate);
-				this.MatrixR.addValue(i, j, dUpdatedValue);
+				this.MatrixR.addValue(iID, j, dUpdatedValue);
 			}
 		}
 		this.MatrixE.normalizeByRow();

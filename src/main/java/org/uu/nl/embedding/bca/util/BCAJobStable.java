@@ -11,7 +11,6 @@ import java.util.TreeMap;
  *
  */
 public abstract class BCAJobStable extends BCAJob {
-	public int iNumNeighbors;
 
 	protected BCAJobStable(int bookmark, boolean reverse, double alpha, double epsilon, InMemoryRdfGraph graph, int[][] vertexOut, int[][] vertexIn, int[][] edgeOut, int[][] edgeIn) {
 		super(bookmark, reverse, alpha, epsilon, graph, vertexOut, vertexIn, edgeOut, edgeIn);
@@ -25,7 +24,7 @@ public abstract class BCAJobStable extends BCAJob {
 		nodeTree.put(bookmark, new PaintedNode(bookmark, 1));
 
 		int[] neighbors, edges;
-		int focusNode, neighborCntr = 0;
+		int focusNode;
 		double wetPaint, partialWetPaint, totalWeight;
 		PaintedNode node;
 
@@ -65,12 +64,10 @@ public abstract class BCAJobStable extends BCAJob {
 					nodeTree.get(neighbors[i]).addPaint(partialWetPaint);
 				} else {
 					nodeTree.put(neighbors[i], new PaintedNode(neighbors[i], partialWetPaint));
-					neighborCntr++;
 				}
 
 			}
 		}
-		this.iNumNeighbors = neighborCntr;
 		return bcv;
 	}
 	
