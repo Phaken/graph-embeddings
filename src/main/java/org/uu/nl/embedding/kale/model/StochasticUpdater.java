@@ -94,8 +94,8 @@ public class StochasticUpdater {
 		// Loop through positive triples and calculate
 		// gradients.
 // #####
-		for (int iID = 0; iID < 1; iID++) {
-		//for (int iID = 0; iID < this.lstPosTriples.size(); iID++) {
+		//for (int iID = 0; iID < 1; iID++) {
+		for (int iID = 0; iID < this.lstPosTriples.size(); iID++) {
 			KaleTriple PosTriple = this.lstPosTriples.get(iID);
 			KaleTriple HeadNegTriple = this.lstHeadNegTriples.get(iID);
 			KaleTriple TailNegTriple = this.lstTailNegTriples.get(iID);
@@ -126,8 +126,9 @@ public class StochasticUpdater {
 		}
 
 		// Calculate gradient for altered rule.
-		for (int iID = 0; iID < 1; iID++) {
-		//for (int iID = 0; iID < this.lstRules.size(); iID++) {
+// #####
+		//for (int iID = 0; iID < 1; iID++) {
+		for (int iID = 0; iID < this.lstRules.size(); iID++) {
 			TripleRule rule = this.lstRules.get(iID);
 			TripleRule sndRelNegrule = this.lstSndRelNegRules.get(iID);
 			

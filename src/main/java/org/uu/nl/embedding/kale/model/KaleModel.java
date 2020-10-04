@@ -1,6 +1,7 @@
 package org.uu.nl.embedding.kale.model;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
@@ -39,6 +40,7 @@ import me.tongfei.progressbar.ProgressBar;
  */
 public class KaleModel {
 	private String FILE_TYPE;
+	private String FILEPATH;
 	
 	public TripleSet m_TrainingTriples;
 	public TripleSet m_ValidateTriples;
@@ -46,8 +48,8 @@ public class KaleModel {
 	public TripleSet m_Triples;
 	public RuleSet m_TrainingRules;
 	
-	private int iNumTriplesTrain;
-	private int iNumRulesTrain;
+	//private int iNumTriplesTrain;
+	//private int iNumRulesTrain;
 	
 	public KaleMatrix m_Entity_Factor_MatrixE;
 	public KaleMatrix m_Relation_Factor_MatrixR;
@@ -342,13 +344,14 @@ public class KaleModel {
 		this.config = config;
 		this.dataGenerator = dataGenerator;
 		this.FILE_TYPE = FILE_TYPE;
+		this.FILEPATH = "/Users/euan/eclipse-workspace/graphLogicEmbed/data/input";
 
 		/*
 		 * Should be taken from config file.
-		 */
-		this.iNumTriplesTrain = 1;
-		this.iNumRulesTrain = 1;
-		this.m_NumIteration = 1;
+		 *
+		this.iNumTriplesTrain = 3;
+		this.iNumRulesTrain = 3;
+		this.m_NumIteration = 3;*/
 		
 		this.iDim = config.getDim();
 		this.m_NumEntity = iNumEntity;
@@ -428,12 +431,12 @@ public class KaleModel {
 			logger.info("Initializion matrix E and matrix R successful.");
 	
 			logger.info("Initializing gradients of matrix E and matrix R.");
-			this.m_MatrixEGradient = new KaleMatrix(this.m_Entity_Factor_MatrixE.rows(),
-												this.m_Entity_Factor_MatrixE.columns(),
-												this.iDim, false);
+			this.m_MatrixEGradient = this.m_Entity_Factor_MatrixE.generateGradientMatrix();
+			this.m_MatrixRGradient = this.m_Relation_Factor_MatrixR.generateGradientMatrix();
+			/*this.m_MatrixEGradient = new KaleMatrix(this.m_Entity_Factor_MatrixE.rows(),
+												this.m_Entity_Factor_MatrixE.columns(), false);
 			this.m_MatrixRGradient = new KaleMatrix(this.m_Relation_Factor_MatrixR.rows(),
-												this.m_Relation_Factor_MatrixR.columns(),
-												this.iDim, true);
+												this.m_Relation_Factor_MatrixR.columns(), true);*/
 			logger.info("Initialization gradients of matrix E and matrix R successfull.");
 			logger.info("Model initialization successful.");
 		} catch (Exception ex) { ex.printStackTrace(); }
@@ -562,7 +565,7 @@ public class KaleModel {
 		//logger.info("WARNING: Wrong method used -> loadGloveEntityVectors()");
 		//System.out.println("this.orderedIdxMap.size(): " +this.orderedIdxMap.size());
 		logger.info("Start generating entity GloVe matrix.");
-		KaleMatrix kMatrix = new KaleMatrix(this.iNumTotal, this.iNumTotal, this.iDim, false);
+		KaleMatrix kMatrix = new KaleMatrix(this.iNumTotal, this.iNumTotal, false);
 		
 		int nodeID, neighborID, matrixIdx_I;
 		int v = 0, nodeCntr = 0;
@@ -605,7 +608,7 @@ public class KaleModel {
 	public KaleMatrix loadCoOccurenceEdges() throws Exception {
 		//logger.info("WARNING: Wrong method used -> loadGloveRelationVectors()");
 		logger.info("Start generating edge GloVe matrix.");
-		KaleMatrix kMatrix = new KaleMatrix(this.m_NumUniqueRelation, this.iNumTotal, this.iDim, true);
+		KaleMatrix kMatrix = new KaleMatrix(this.m_NumUniqueRelation, this.iNumTotal, true);
 		/*
 		 * TEMP START
 		 */
@@ -687,11 +690,18 @@ public class KaleModel {
 				+ "-ge" + this.decimalFormat.format(this.m_GammaE) 
 				+ "-gr" + this.decimalFormat.format(this.m_GammaR)
 				+ "-w" +  this.decimalFormat.format(this.m_Weight) + this.fileExtension;
+		File f = new File(PATHLOG);
+		int num = 0;
+		while (f.exists()) {
+			num++;
+			PATHLOG = this.FILEPATH + "/" + num + "_" + PATHLOG;
+			f = new File(PATHLOG);
 		
+		/*
 		if (this.m_TrainingTriples.nTriples() < this.iNumTriplesTrain)
 			this.iNumTriplesTrain = this.m_TrainingTriples.nTriples();
 		if (this.m_TrainingRules.rules() < this.iNumRulesTrain) 
-			this.iNumRulesTrain = this.m_TrainingRules.rules();
+			this.iNumRulesTrain = this.m_TrainingRules.rules();*/
 
 		try(BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
 				new FileOutputStream(PATHLOG), "UTF-8")); ) {
@@ -725,11 +735,11 @@ public class KaleModel {
 			
 			// Initialize start of training time and start training process.
 			long startTime = System.currentTimeMillis();
-			//try (ProgressBar pb = Configuration.progressBar("KaleModel Cochez-Learning", this.m_NumIteration, "iterations");) {
+			try (ProgressBar pb = Configuration.progressBar("KaleModel Cochez-Learning", this.m_NumIteration, "iterations");) {
 				while (iIterCntr < this.m_NumIteration) {
 					try {
 
-						System.out.println("KaleModel.CochezLearn(boolean) - Iteratie gestart.");
+						//System.out.println("KaleModel.CochezLearn(boolean) - Iteratie gestart.");
 					// Loop through training triples and generate negative versions (alterations).
 					this.m_TrainingTriples.randomShuffle();
 					
@@ -737,9 +747,10 @@ public class KaleModel {
 					Permutation triplePermutation = new Permutation(this.m_TrainingTriples.nTriples());
 					triplePermutation.shuffle();
 					
-					for (int iTriple = 0; iTriple < /*this.m_TrainingTriples.nTriples()*/ this.iNumTriplesTrain; iTriple++) {
+					for (int iTriple = 0; iTriple < this.m_TrainingTriples.nTriples() /*this.iNumTriplesTrain*/; iTriple++) {
 						// Check if head is in entity matrix.
 
+						//System.out.println("KaleModel.CochezLearn(boolean) - WARNING: loop should be this.m_TrainingTriples.nTriples()");
 						System.out.println("KaleModel.CochezLearn(boolean) - Volgende triple: "+ iTriple);
 						if (!this.m_Entity_Factor_MatrixE.containsKey(this.m_TrainingTriples.get(iTriple).head())) {
 							logger.info("\nVertex not in matrix, thus skipped: "+this.m_TrainingTriples.get(iTriple).head()+"\n");
@@ -787,7 +798,9 @@ public class KaleModel {
 					int accessRuleID;
 					Permutation rulePermutation = new Permutation(this.m_TrainingRules.rules());
 					rulePermutation.shuffle();
-					for (int iRule = 0; iRule < this.iNumRulesTrain; iRule++) {
+
+					//System.out.println("KaleModel.CochezLearn(boolean) - WARNING: loop should be this.iNumRulesTrain");
+					for (int iRule = 0; iRule < this.m_TrainingRules.rules() /*this.iNumRulesTrain*/; iRule++) {
 
 						System.out.println("KaleModel.CochezLearn(boolean) - Volgende rule: "+ iRule);
 						accessRuleID = rulePermutation.randomAccess(iRule);
@@ -884,24 +897,25 @@ public class KaleModel {
 					}
 				
 				} catch (InterruptedException | ExecutionException e) {
+					writer.close();
 					logger.info("Failed training step KaleModel.");
 					e.printStackTrace();
 				} finally {
 					System.out.println("KaleModel.CochezLearn(boolean) - Einde iteratie.");
-					//pb.step();
+					pb.step();
 				}
 			}
-// TEMP NIET HAAKJE --> }
+			}
 	
 		// Print end of training time to console and close writer.
 		long endTime = System.currentTimeMillis();
 		System.out.println("All running time:" + (endTime-startTime)+"ms");
 		writer.close();
 		this.kaleVectorMatrix = new KaleVectorMatrix(this.graph, this.config, bestEntityVectors, bestRelationVectors);
-/*TEMP HAAKJE -->*/}
+/*TEMP HAAKJE -->*}*/
 		
-	//} catch (Exception ex) { ex.printStackTrace(); }		
-}
+		} catch (Exception ex) { ex.printStackTrace(); }		
+	}
 
 	
 	/**

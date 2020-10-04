@@ -9,6 +9,7 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -46,12 +47,11 @@ public class KaleMatrix {
 	
 	private boolean isRelationMatrix;
 	
-	public KaleMatrix(int iRows, int iColumns, int dictSize) {
+	public KaleMatrix(int iRows, int iColumns) {
 
 		this.iNumberOfRows = iRows;
 		this.iNumberOfColumns = iColumns;
 		this.iDim = iColumns;
-		this.dictSize = dictSize;
 		
 		this.rowMap = new HashMap<Integer, HashMap<Integer, Double>>(iRows);
 		this.rowSumMap = new HashMap<Integer, HashMap<Integer, Double>>(iRows);
@@ -59,8 +59,8 @@ public class KaleMatrix {
 		this.isRelationMatrix = false;
 	}
 	
-	public KaleMatrix(int iRows, int iColumns, int dictSize, final boolean isRelationMatrix) {
-		this(iRows, iColumns, dictSize);
+	public KaleMatrix(int iRows, int iColumns, final boolean isRelationMatrix) {
+		this(iRows, iColumns);
 		if (isRelationMatrix) logger = Logger.getLogger("KaleMatrix-Edges");
 		else logger = Logger.getLogger("KaleMatrix-Nodes");
 		
@@ -110,6 +110,7 @@ public class KaleMatrix {
 						value = this.gloveArray[index];
 						setNeighbor(i, j, (double) value);
 					}
+					rowPositions.add(id);
 				}
 			} catch (Exception ex) {
 				ex.printStackTrace();
@@ -154,13 +155,20 @@ public class KaleMatrix {
 				HashMap<Integer, Double> map = new HashMap<Integer, Double>();
 				map.put(j, dValue);
 				rowMap.put(i, map);
-				rowPositions.add(i);
 
 				//System.out.println("KaleMatrix.setNeighbor() - New neighbor set.");
 				
 			} else {
 				rowMap.get(i).put(j, dValue);
 				//System.out.println("KaleMatrix.setNeighbor() - Neighbor set.");
+			}
+			
+			if (!rowSumMap.containsKey(i)) {
+				HashMap<Integer, Double> map = new HashMap<Integer, Double>();
+				map.put(j, 0d);
+				rowSumMap.put(i, map);
+			} else if (!rowSumMap.get(i).containsKey(j)) {
+				rowSumMap.get(i).put(j, 0d);
 			}
 		} catch (Exception e) { e.printStackTrace(); }
 	}
@@ -211,13 +219,16 @@ public class KaleMatrix {
 			throw new Exception("get error in KaleMatrix: ColumnID out of range. Received: " + j);
 		}
 		
-		if (!rowSumMap.containsKey(i) || !rowSumMap.get(i).containsKey(j)) {
+		if (!rowSumMap.containsKey(i)) {
 			HashMap<Integer, Double> map = new HashMap<Integer, Double>();
 			double val = rowMap.get(i).get(j);
 			map.put(j, val*val);
-			rowMap.put(i, map);
-			rowPositions.add(i);
-		
+			rowSumMap.put(i, map);
+			
+		} else if (!rowSumMap.get(i).containsKey(j)) {
+			double val = rowMap.get(i).get(j);
+			rowSumMap.get(i).put(j, val*val);
+			
 		} else {
 			double curSum = rowSumMap.get(i).get(j);
 			double val = rowMap.get(i).get(j);
@@ -232,7 +243,16 @@ public class KaleMatrix {
 	 * @return
 	 */
 	public int getIdByRow(final int rowPos) {
-		return rowPositions.get(rowPos);
+		//return rowPositions.get(rowPos);
+		return this.orderedIDs[rowPos];
+	}
+	
+	public KaleMatrix generateGradientMatrix() throws Exception {
+		KaleMatrix gradMat = new KaleMatrix(this.gloveArray, this.orderedIDs,
+						this.iDim, this.isRelationMatrix);
+		gradMat.resetMatrix();
+		
+		return gradMat;
 	}
 	
 	
@@ -482,6 +502,17 @@ public class KaleMatrix {
 	public void releaseMemory() {
 		rowMap = new HashMap<Integer, HashMap<Integer, Double>>(this.iNumberOfRows);
 		rowSumMap = new HashMap<Integer, HashMap<Integer, Double>>(this.iNumberOfRows);
+	}
+	
+	private void resetMatrix() {
+		for (Entry<Integer, HashMap<Integer, Double>> entry : this.rowMap.entrySet()) {
+			int row = entry.getKey();
+			for (Entry<Integer, Double> entry2 : entry.getValue().entrySet()) {
+				int col = entry2.getKey();
+				this.rowMap.get(row).put(col, 0d);
+				this.rowSumMap.get(row).put(col, 0d);
+			}
+		}
 	}
 	
 	public void resetToZero() {

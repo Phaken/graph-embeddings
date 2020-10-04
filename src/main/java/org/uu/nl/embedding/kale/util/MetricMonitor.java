@@ -95,8 +95,8 @@ public class MetricMonitor {
 			logger.info("Initializing metrics calculations.");
 			// Loop through triples to be validated.
 // #######
-			for (int iID = 0; iID < 1; iID++) {
-			//for (int iID = 0; iID < this.iNumValidations; iID++) {
+			//for (int iID = 0; iID < 1; iID++) {
+			for (int iID = 0; iID < this.iNumValidations; iID++) {
 				try {
 					// Get indices.
 					accessID = triplePermutation.randomAccess(iID);
@@ -126,8 +126,8 @@ public class MetricMonitor {
 					if (iID % 1000 == 0) logger.info("Looping through head vertices for validation triple: "+iID);
 					manipulationPermutation.shuffle();
 // ##########					
-					for (int iLeftID = 0; iLeftID < 1; iLeftID++) {
-					//for (int iLeftID = 0; iLeftID < this.iNumManipulations; iLeftID++) {
+					//for (int iLeftID = 0; iLeftID < 1; iLeftID++) {
+					for (int iLeftID = 0; iLeftID < this.iNumManipulations; iLeftID++) {
 						// Get altered entity and skip if its the same as the
 						// iSubjectID.
 						/*
@@ -178,8 +178,8 @@ public class MetricMonitor {
 					if (accessID % 1000 == 0) logger.info("Looping through tail vertices for validation triple: "+accessID);
 					manipulationPermutation.shuffle();
 // #####
-					for (int iRightID = 0; iRightID < 1; iRightID++) {
-					//for (int iRightID = 0; iRightID < this.iNumManipulations; iRightID++) {
+					//for (int iRightID = 0; iRightID < 1; iRightID++) {
+					for (int iRightID = 0; iRightID < this.iNumManipulations; iRightID++) {
 						// Get altered entity and skip if its the same as the
 						// iObjectID.
 						/*
