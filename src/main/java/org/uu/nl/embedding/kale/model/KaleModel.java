@@ -690,13 +690,14 @@ public class KaleModel {
 				+ "-ge" + this.decimalFormat.format(this.m_GammaE) 
 				+ "-gr" + this.decimalFormat.format(this.m_GammaR)
 				+ "-w" +  this.decimalFormat.format(this.m_Weight) + this.fileExtension;
-		File f = new File(PATHLOG);
 		int num = 0;
+		PATHLOG = this.FILEPATH + "/" + num + "_" + PATHLOG;
+		File f = new File(PATHLOG);
 		while (f.exists()) {
 			num++;
 			PATHLOG = this.FILEPATH + "/" + num + "_" + PATHLOG;
 			f = new File(PATHLOG);
-		
+		}
 		/*
 		if (this.m_TrainingTriples.nTriples() < this.iNumTriplesTrain)
 			this.iNumTriplesTrain = this.m_TrainingTriples.nTriples();
