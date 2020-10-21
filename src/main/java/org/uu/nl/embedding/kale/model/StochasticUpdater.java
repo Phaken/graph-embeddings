@@ -27,6 +27,8 @@ public class StochasticUpdater {
 	public KaleMatrix MatrixRGradient;
 	public double dGammaE;
 	public double dGammaR;
+	public double dResultE;
+	public double dResultR;
 	public double dDelta;
 	public double m_Weight;
 	boolean isGlove;
@@ -86,8 +88,8 @@ public class StochasticUpdater {
 	 * @author Euan Westenbroek, based on iieir-km's method.
 	 */
 	public void stochasticIterationGlove() throws Exception {
-		this.MatrixEGradient.setToValue(0.0);
-		this.MatrixRGradient.setToValue(0.0);
+		this.MatrixEGradient.setToValueArray(0.0);
+		this.MatrixRGradient.setToValueArray(0.0);
 		
 		// Calculate gradients for triples as well as rules.
 
@@ -144,20 +146,23 @@ public class StochasticUpdater {
 			sndRuleGradient.calculateGradientGlove(this.m_Weight);	
 		}
 		
-		this.MatrixEGradient.rescaleByRow();
-		this.MatrixRGradient.rescaleByRow();
+		this.MatrixEGradient.rescaleByRowArray();
+		this.MatrixRGradient.rescaleByRowArray();
 		
 		// Loop through entity-gradient matrix and
 		// update entity matrix.
+		this.dResultE = 0d;
+		this.dResultR = 0d;
 		for (int i = 0; i < this.MatrixE.rows(); i++) {
 			int iID = this.MatrixE.getIdByRow(i);
 			for (int j = 0; j < this.MatrixE.columns(); j++) {
 				
 				// Get current gradient.
-				double dValue = this.MatrixEGradient.getNeighbor(iID, j);
-				this.MatrixEGradient.accumulatedByGradNeighbor(iID, j);
+				double dValue = this.MatrixEGradient.arrayGet(i, j);
+				this.MatrixEGradient.accumulatedByGradArray(i, j);
 				// Calculate learned rate and add 1e-8 to prevent division by zero.
-				double dLearnRate = Math.sqrt(this.MatrixEGradient.getSum(iID, j)) + 1e-8;
+				dResultE += Math.sqrt(this.MatrixEGradient.getSumArray(i, j));
+				double dLearnRate = Math.sqrt(this.MatrixEGradient.getSumArray(i, j)) + 1e-8;
 				double dUpdatedValue = (-1.0 * this.dGammaE * dValue / dLearnRate);
 				this.MatrixE.addValue(iID, j, dUpdatedValue);
 			}
@@ -165,20 +170,29 @@ public class StochasticUpdater {
 		// Loop through relation-gradient matrix and
 		// update relation matrix.
 		for (int i = 0; i < this.MatrixR.rows(); i++) {
-			int iID = this.MatrixE.getIdByRow(i);
+			int iID = this.MatrixR.getIdByRow(i);
 			for (int j = 0; j < this.MatrixR.columns(); j++) {
 
 				// Get current gradient.
-				double dValue = this.MatrixRGradient.getNeighbor(iID, j);
-				this.MatrixRGradient.accumulatedByGradNeighbor(iID, j);
+				double dValue = this.MatrixRGradient.arrayGet(i, j);
+				this.MatrixRGradient.accumulatedByGradArray(i, j);
 				// Calculate learned rate and add 1e-8 to prevent division by zero.
-				double dLearnRate = Math.sqrt(this.MatrixRGradient.getSum(iID, j)) + 1e-8;
+				dResultR += Math.sqrt(this.MatrixRGradient.getSumArray(i, j));
+				double dLearnRate = Math.sqrt(this.MatrixRGradient.getSumArray(i, j)) + 1e-8;
 				double dUpdatedValue = (-1.0 * this.dGammaR * dValue / dLearnRate);
 				this.MatrixR.addValue(iID, j, dUpdatedValue);
 			}
 		}
 		this.MatrixE.normalizeByRow();
 		this.MatrixR.normalizeByRow();
+	}
+
+	public double learnedRateMeanEntity() {
+		return (this.dResultE / (this.MatrixE.rows()*this.MatrixE.columns()));
+	}
+
+	public double learnedRateMeanRelation() {
+		return (this.dResultR / (this.MatrixR.rows()*this.MatrixR.columns()));
 	}
 	
 	/*public void stochasticIterationDefault() throws Exception {

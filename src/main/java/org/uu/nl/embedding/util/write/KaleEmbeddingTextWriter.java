@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.uu.nl.embedding.convert.util.NodeInfo;
+import org.uu.nl.embedding.kale.struct.KaleMatrix;
 import org.uu.nl.embedding.opt.Optimum;
 import org.uu.nl.embedding.util.CoOccurrenceMatrix;
 import org.uu.nl.embedding.util.config.Configuration;
@@ -24,6 +25,7 @@ public class KaleEmbeddingTextWriter implements EmbeddingWriter {
 	protected final Configuration config;
 	private String FILE;
 	private String FILETYPE;
+	private boolean intermediateKale;
 
 	public KaleEmbeddingTextWriter(String fileName, Configuration config, final String FILETYPE) {
 		if (!FileHasFileType(fileName)) this.FILE = fileName + FILETYPE;
@@ -36,6 +38,18 @@ public class KaleEmbeddingTextWriter implements EmbeddingWriter {
 		this.writeNodeTypes[NodeInfo.BLANK.id]  = config.getOutput().outputBlankNodes();
 		this.writeNodeTypes[NodeInfo.LITERAL.id] = config.getOutput().outputLiteralNodes();
 	}
+
+	public KaleEmbeddingTextWriter(Configuration config, final String FILETYPE, boolean intermediateKale) {
+		this.FILETYPE = FILETYPE;
+
+		this.config = config;
+		this.writeNodeTypes = new boolean[3];
+		this.writeNodeTypes[NodeInfo.URI.id] = config.getOutput().outputUriNodes();
+		this.writeNodeTypes[NodeInfo.BLANK.id]  = config.getOutput().outputBlankNodes();
+		this.writeNodeTypes[NodeInfo.LITERAL.id] = config.getOutput().outputLiteralNodes();
+
+		this.intermediateKale = intermediateKale;
+	}
 	
 	/*public KaleEmbeddingTextWriter(String fileName, Configuration config) {
 		this.FILE = fileName;
@@ -47,6 +61,29 @@ public class KaleEmbeddingTextWriter implements EmbeddingWriter {
 		this.writeNodeTypes[NodeInfo.BLANK.id]  = config.getOutput().outputBlankNodes();
 		this.writeNodeTypes[NodeInfo.LITERAL.id] = config.getOutput().outputLiteralNodes();
 	}*/
+
+	public void writeIntermediate(final String fileName, final ArrayList<String> lines) throws IOException {
+		if (!FileHasFileType(fileName)) this.FILE = fileName + FILETYPE;
+		else this.FILE = fileName;
+
+		final int nrLines = lines.size();
+		String line = "";
+
+		try (ProgressBar pb = Configuration.progressBar("Writing to file", nrLines, "lines\n");
+			 Writer writer = new BufferedWriter(new FileWriter(this.FILE))) {
+
+			for (int i = 0; i < nrLines; i++) {
+
+				line = lines.get(i);
+				if (!line.endsWith("\n")) line += "\n";
+
+				writer.write(line);
+				pb.step();
+			}
+			writer.close();
+			logger.info("Data written to: " + this.FILE);
+		}
+	}
 	
 	public void write(final float[] embedding, final int[] orderedIDs, final int iDim) throws IOException, Exception {
 		if (embedding.length <= 0) throw new Exception("Received invalid embedding array: "+embedding.length);
@@ -98,6 +135,8 @@ public class KaleEmbeddingTextWriter implements EmbeddingWriter {
 			logger.info("Data written to: " + this.FILE);
 		}
 	}
+
+
 	
 	private void writeConfig(Writer writer) throws IOException {
 

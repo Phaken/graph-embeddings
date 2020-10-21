@@ -62,6 +62,14 @@ public class TripleSet {
 		pTriple = new ArrayList<KaleTriple>();
 	}
 
+	public TripleSet(final String fnLoadFile, int iEntities, int iRelations) throws Exception {
+		pTriple = new ArrayList<KaleTriple>();
+		load(fnLoadFile);
+
+		this.iNumberOfEntities = iEntities;
+		this.iNumberOfRelations = iRelations;
+	}
+
 	/*
 	 * STARTTEMP
 	 */

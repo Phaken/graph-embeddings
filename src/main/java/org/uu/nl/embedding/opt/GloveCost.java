@@ -23,26 +23,18 @@ public class GloveCost implements CostFunction {
 
         float innerCost = 0, dimensionalCost;
         for (int d = 0; d < opt.dimension; d++) {
-        	//System.out.println("GloveCost.innerCost() - focus["+u+"]["+d+"] = "+ opt.focus[u][d]+ ", context["+u+"]["+d+"] = "+opt.context[v][d]);
-        	//System.out.println("GloveCost.innerCost() - focus["+u+"]["+d+"] * context["+u+"]["+d+"] =  "+ opt.focus[u][d] * opt.context[v][d]);
-        	if (opt.focus[u][d] < 0 && opt.context[v][d] > 0)
+        	/*if (opt.focus[u][d] < 0 && opt.context[v][d] > 0)
         		dimensionalCost = (((opt.focus[u][d] * -1) * opt.context[v][d]) * -1);
         	else if (opt.focus[u][d] > 0 && opt.context[v][d] < 0)
         		dimensionalCost = ((opt.focus[u][d] * (opt.context[v][d] * -1)) * -1);
             else if ((opt.focus[u][d] * opt.context[v][d]) < 1e-7) dimensionalCost = 0f;
-            else dimensionalCost = (opt.focus[u][d] * opt.context[v][d]);
-        	
-        	//System.out.println("GloveCost.innerCost() - dimensionalCost = "+ dimensionalCost);
-        	
+            else dimensionalCost = (opt.focus[u][d] * opt.context[v][d]);*/
+
+            dimensionalCost = (opt.focus[u][d] * opt.context[v][d]);
             innerCost += dimensionalCost; // dot product of node and context node vector
-        	//System.out.println("GloveCost.innerCost() - innerCost += focus["+u+"]["+d+"] * context["+u+"]["+d+"] = "+innerCost);
-        	//if (Float.isNaN(innerCost) || Double.isNaN(innerCost)) innerCost = 0;
         }
         // Add separate bias for each node
-    	//System.out.println("GloveCost.innerCost() - FastMath.log(Xij="+Xij+") = "+FastMath.log(Xij));
-    	//System.out.println("GloveCost.innerCost() - Math.log(Xij="+Xij+") = "+Math.log(Xij));
         innerCost += opt.fBias[u] + opt.cBias[v] - FastMath.log(Xij);
-    	//if (Float.isNaN(innerCost) || Double.isNaN(innerCost)) innerCost = 0;
         return innerCost;
     }
 

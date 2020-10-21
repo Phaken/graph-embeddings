@@ -42,8 +42,7 @@ public class TripleGradient {
 	}
 	
 	/**
-	 * 
-	 * @param weight
+	 *
 	 * @throws Exception
 	 * @author Euan Westenbroek
 	 */
@@ -123,9 +122,9 @@ public class TripleGradient {
 				if (tripleSum > 0)  	dPosSgn = 1.0;
 				else if (tripleSum < 0) dPosSgn = -1.0;
 				
-				this.MatrixEGradient.addValue(iPosHead, p, (dPosSgn * dValue));
-				this.MatrixRGradient.addValue(iPosRelation, p, (dPosSgn * dValue));
-				this.MatrixEGradient.addValue(iPosTail, p, (-1.0 * dPosSgn * dValue));
+				this.MatrixEGradient.arrayAdd(iPosHead, p, (dPosSgn * dValue));
+				this.MatrixRGradient.arrayAdd(iPosRelation, p, (dPosSgn * dValue));
+				this.MatrixEGradient.arrayAdd(iPosTail, p, (-1.0 * dPosSgn * dValue));
 
 				// Update gradient based on negative triple
 				double dNegSgn = 0.0;
@@ -133,9 +132,9 @@ public class TripleGradient {
 				if (tripleSum > 0) 		dNegSgn = 1.0;
 				else if (tripleSum < 0) dNegSgn = -1.0;
 				
-				this.MatrixEGradient.addValue(iNegHead, p, (-1.0 * dValue * dNegSgn));
-				this.MatrixRGradient.addValue(iNegRelation, p, (-1.0 * dValue * dNegSgn));
-				this.MatrixEGradient.addValue(iNegTail, p, (dValue * dNegSgn));
+				this.MatrixEGradient.arrayAdd(iNegHead, p, (-1.0 * dValue * dNegSgn));
+				this.MatrixRGradient.arrayAdd(iNegRelation, p, (-1.0 * dValue * dNegSgn));
+				this.MatrixEGradient.arrayAdd(iNegTail, p, (dValue * dNegSgn));
 			}
 		}
 	}

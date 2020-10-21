@@ -64,7 +64,7 @@ public class AdagradKale extends OptimizerKale {
                 //u = bu;// * dimension; // Index of focus vector
                 //v = bv;// * dimension; // Index of bias vector
                 Xij = coMatrix.cIdx_C(i + offset); // Co-occurrence
-                if (Xij < 0) { /*logger.info("WARNING: Xij has negative value: " + Xij);*/ Xij = Math.abs(Xij); }
+                //if (Xij < 0) { /*logger.info("WARNING: Xij has negative value: " + Xij);*/ Xij = Math.abs(Xij); }
 
                 /* Calculate cost, save diff for gradients */
                 innerCost = costFunction.innerCost(this, Xij, u, v);

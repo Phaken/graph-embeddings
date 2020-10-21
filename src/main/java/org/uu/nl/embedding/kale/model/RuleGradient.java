@@ -66,7 +66,7 @@ public class RuleGradient {
 		int iSndHead = this.Rule.getSecondTriple().head();
 		int iSndTail = this.Rule.getSecondTriple().tail();
 		int iSndRelation = this.Rule.getSecondTriple().relation();
-		System.out.println("RuleGradient.calculateGradientGlove() - Rule = "+ Rule.toString());
+		//System.out.println("RuleGradient.calculateGradientGlove() - Rule = "+ Rule.toString());
 		
 		int iNegFstHead = this.NegRule.getFirstTriple().head();
 		int iNegFstTail = this.NegRule.getFirstTriple().tail();
@@ -74,7 +74,7 @@ public class RuleGradient {
 		int iNegSndHead = this.NegRule.getSecondTriple().head();
 		int iNegSndTail = this.NegRule.getSecondTriple().tail();
 		int iNegSndRelation = this.NegRule.getSecondTriple().relation();
-		System.out.println("RuleGradient.calculateGradientGlove() - NegRule = "+ NegRule.toString());
+		//System.out.println("RuleGradient.calculateGradientGlove() - NegRule = "+ NegRule.toString());
 
 		/*
 		 * From paper:
@@ -113,11 +113,7 @@ public class RuleGradient {
 			}
 			this.dSndPi *= dValue;
 			this.dSndPi += 1.0;
-//----------------------------------------------------------------------------------------------------------------------------------------------------
-			/*
-			 * WAT GEBEURT HIER?
-			 */
-			// Calculate positive value I.
+
 			dPosPi = this.dFstPi * (this.dSndPi - 1.0) + 1.0;
 			
 			// Repeat for negative alterations.
@@ -141,7 +137,7 @@ public class RuleGradient {
 			}
 			this.dNegSndPi *= dValue;
 			this.dNegSndPi += 1.0;
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+
 			// Calculate negative predicate value I.
 			dNegPi = this.dNegFstPi * (this.dNegSndPi - 1.0) + 1.0;
 
@@ -158,11 +154,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dFstSgn = 1.0;
 					else if (tripleSum < 0) dFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					
-// WAAROM HIER dSndPi -1 EN DAN NOG EEN KEER * dValue??????????????????????????????????????????
-					this.MatrixEGradient.addValue(iFstHead, p, (weight * (this.dSndPi-1) * dValue * dFstSgn));
-					this.MatrixRGradient.addValue(iFstRelation, p, (weight * (this.dSndPi-1) * dValue * dFstSgn));
-					this.MatrixEGradient.addValue(iFstTail, p, (-1.0 * weight * (this.dSndPi-1) * dValue * dFstSgn));
+					this.MatrixEGradient.arrayAdd(iFstHead, p, (weight * (this.dSndPi-1) * dValue * dFstSgn));
+					this.MatrixRGradient.arrayAdd(iFstRelation, p, (weight * (this.dSndPi-1) * dValue * dFstSgn));
+					this.MatrixEGradient.arrayAdd(iFstTail, p, (-1.0 * weight * (this.dSndPi-1) * dValue * dFstSgn));
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
@@ -172,10 +166,11 @@ public class RuleGradient {
 									this.MatrixE.getNeighbor(iSndTail, p);
 					if (tripleSum > 0) 		dSndSgn = 1.0;
 					else if (tripleSum < 0) dSndSgn = -1.0;
+
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iSndHead, p, (weight * this.dFstPi * dValue * dSndSgn));
-					this.MatrixRGradient.addValue(iSndRelation, p, (weight * this.dFstPi * dValue * dSndSgn));
-					this.MatrixEGradient.addValue(iSndTail, p, (-1.0 * weight * this.dFstPi * dValue * dSndSgn));
+					this.MatrixEGradient.arrayAdd(iSndHead, p, (weight * this.dFstPi * dValue * dSndSgn));
+					this.MatrixRGradient.arrayAdd(iSndRelation, p, (weight * this.dFstPi * dValue * dSndSgn));
+					this.MatrixEGradient.arrayAdd(iSndTail, p, (-1.0 * weight * this.dFstPi * dValue * dSndSgn));
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
@@ -186,9 +181,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dNegFstSgn = 1.0;
 					else if (tripleSum < 0) dNegFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iNegFstHead, p,  -1.0 * weight * (this.dNegSndPi-1) * dValue * dNegFstSgn);
-					this.MatrixEGradient.addValue(iNegFstTail, p, weight * (this.dNegSndPi-1) * dValue * dNegFstSgn);
-					this.MatrixRGradient.addValue(iNegFstRelation, p,  -1.0 * weight * (this.dNegSndPi-1) * dValue * dNegFstSgn);
+					this.MatrixEGradient.arrayAdd(iNegFstHead, p,  -1.0 * weight * (this.dNegSndPi-1) * dValue * dNegFstSgn);
+					this.MatrixEGradient.arrayAdd(iNegFstTail, p, weight * (this.dNegSndPi-1) * dValue * dNegFstSgn);
+					this.MatrixRGradient.arrayAdd(iNegFstRelation, p,  -1.0 * weight * (this.dNegSndPi-1) * dValue * dNegFstSgn);
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.		
@@ -198,10 +193,11 @@ public class RuleGradient {
 									this.MatrixE.getNeighbor(iNegSndTail, p);
 					if (tripleSum > 0) 		dNegSndSgn = 1.0;
 					else if (tripleSum < 0) dNegSndSgn = -1.0;
+
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iNegSndHead, p, (-1.0 * weight * this.dNegFstPi * dValue * dNegSndSgn));
-					this.MatrixEGradient.addValue(iNegSndTail, p, (weight * this.dNegFstPi * dValue * dNegSndSgn));
-					this.MatrixRGradient.addValue(iNegSndRelation, p, (-1.0 * weight * this.dNegFstPi * dValue * dNegSndSgn));
+					this.MatrixEGradient.arrayAdd(iNegSndHead, p, (-1.0 * weight * this.dNegFstPi * dValue * dNegSndSgn));
+					this.MatrixEGradient.arrayAdd(iNegSndTail, p, (weight * this.dNegFstPi * dValue * dNegSndSgn));
+					this.MatrixRGradient.arrayAdd(iNegSndRelation, p, (-1.0 * weight * this.dNegFstPi * dValue * dNegSndSgn));
 
 				}
 			}
@@ -305,9 +301,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dFstSgn = 1.0;
 					else if (tripleSum < 0) dFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iFstHead, p, (weight * this.dSndPi * (this.dTrdPi-1) * dValue * dFstSgn));
-					this.MatrixRGradient.addValue(iFstRelation, p, (weight * this.dSndPi * (this.dTrdPi-1) * dValue * dFstSgn));
-					this.MatrixEGradient.addValue(iFstTail, p, (-1.0 * weight * this.dSndPi * (this.dTrdPi-1) * dValue * dFstSgn));
+					this.MatrixEGradient.arrayAdd(iFstHead, p, (weight * this.dSndPi * (this.dTrdPi-1) * dValue * dFstSgn));
+					this.MatrixRGradient.arrayAdd(iFstRelation, p, (weight * this.dSndPi * (this.dTrdPi-1) * dValue * dFstSgn));
+					this.MatrixEGradient.arrayAdd(iFstTail, p, (-1.0 * weight * this.dSndPi * (this.dTrdPi-1) * dValue * dFstSgn));
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
@@ -318,9 +314,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dSndSgn = 1.0;
 					else if (tripleSum < 0) dSndSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iSndHead, p, (weight * this.dFstPi * (this.dTrdPi-1) * dValue * dSndSgn));
-					this.MatrixRGradient.addValue(iSndRelation, p, (weight * this.dFstPi * (this.dTrdPi-1) * dValue * dSndSgn));
-					this.MatrixEGradient.addValue(iSndTail, p, (-1.0 * weight * this.dFstPi * (this.dTrdPi-1) * dValue * dSndSgn));
+					this.MatrixEGradient.arrayAdd(iSndHead, p, (weight * this.dFstPi * (this.dTrdPi-1) * dValue * dSndSgn));
+					this.MatrixRGradient.arrayAdd(iSndRelation, p, (weight * this.dFstPi * (this.dTrdPi-1) * dValue * dSndSgn));
+					this.MatrixEGradient.arrayAdd(iSndTail, p, (-1.0 * weight * this.dFstPi * (this.dTrdPi-1) * dValue * dSndSgn));
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
@@ -331,9 +327,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dTrdSgn = 1.0;
 					else if (tripleSum < 0) dTrdSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iTrdHead, p, (weight * this.dFstPi * this.dSndPi * dValue * dTrdSgn));
-					this.MatrixRGradient.addValue(iTrdRelation, p, (weight * this.dFstPi * this.dSndPi * dValue * dTrdSgn));
-					this.MatrixEGradient.addValue(iTrdTail, p, (-1.0 * weight * this.dFstPi * this.dSndPi * dValue * dTrdSgn));
+					this.MatrixEGradient.arrayAdd(iTrdHead, p, (weight * this.dFstPi * this.dSndPi * dValue * dTrdSgn));
+					this.MatrixRGradient.arrayAdd(iTrdRelation, p, (weight * this.dFstPi * this.dSndPi * dValue * dTrdSgn));
+					this.MatrixEGradient.arrayAdd(iTrdTail, p, (-1.0 * weight * this.dFstPi * this.dSndPi * dValue * dTrdSgn));
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
@@ -344,9 +340,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dNegFstSgn = 1.0;
 					else if (tripleSum < 0) dNegFstSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iNegFstHead, p,  (-1.0 * weight * this.dNegSndPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegFstSgn));
-					this.MatrixRGradient.addValue(iNegFstRelation, p,  (-1.0 * weight * this.dNegSndPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegFstSgn));
-					this.MatrixEGradient.addValue(iNegFstTail, p, (weight * this.dNegSndPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegFstSgn));
+					this.MatrixEGradient.arrayAdd(iNegFstHead, p,  (-1.0 * weight * this.dNegSndPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegFstSgn));
+					this.MatrixRGradient.arrayAdd(iNegFstRelation, p,  (-1.0 * weight * this.dNegSndPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegFstSgn));
+					this.MatrixEGradient.arrayAdd(iNegFstTail, p, (weight * this.dNegSndPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegFstSgn));
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.	
@@ -357,9 +353,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dNegSndSgn = 1.0;
 					else if (tripleSum < 0) dNegSndSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iNegSndHead, p, (-1.0 * weight * this.dNegFstPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegSndSgn));
-					this.MatrixRGradient.addValue(iNegSndRelation, p, (-1.0 * weight * this.dNegFstPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegSndSgn));
-					this.MatrixEGradient.addValue(iNegSndTail, p, (weight * this.dNegFstPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegSndSgn));
+					this.MatrixEGradient.arrayAdd(iNegSndHead, p, (-1.0 * weight * this.dNegFstPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegSndSgn));
+					this.MatrixRGradient.arrayAdd(iNegSndRelation, p, (-1.0 * weight * this.dNegFstPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegSndSgn));
+					this.MatrixEGradient.arrayAdd(iNegSndTail, p, (weight * this.dNegFstPi * ( this.dNegTrdPi - 1.0 ) * dValue * dNegSndSgn));
 
 					// Calculate 'sum' of triple and determine sign 
 					// for absolute value.
@@ -370,9 +366,9 @@ public class RuleGradient {
 					if (tripleSum > 0) 		dNegTrdSgn = 1.0;
 					else if (tripleSum < 0) dNegTrdSgn = -1.0;
 					// Add resulting gradients to respective matrices.
-					this.MatrixEGradient.addValue(iNegTrdHead, p, (-1.0 * weight * this.dNegFstPi * this.dNegSndPi * dValue * dNegTrdSgn));
-					this.MatrixRGradient.addValue(iNegTrdRelation, p, (-1.0 * weight * this.dNegFstPi * this.dNegSndPi * dValue * dNegTrdSgn));
-					this.MatrixEGradient.addValue(iNegTrdTail, p, (weight * this.dNegFstPi * this.dNegSndPi * dValue * dNegTrdSgn));
+					this.MatrixEGradient.arrayAdd(iNegTrdHead, p, (-1.0 * weight * this.dNegFstPi * this.dNegSndPi * dValue * dNegTrdSgn));
+					this.MatrixRGradient.arrayAdd(iNegTrdRelation, p, (-1.0 * weight * this.dNegFstPi * this.dNegSndPi * dValue * dNegTrdSgn));
+					this.MatrixEGradient.arrayAdd(iNegTrdTail, p, (weight * this.dNegFstPi * this.dNegSndPi * dValue * dNegTrdSgn));
 				}
 			}
 			

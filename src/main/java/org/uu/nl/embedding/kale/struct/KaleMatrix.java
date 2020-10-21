@@ -1,11 +1,6 @@
 package org.uu.nl.embedding.kale.struct;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,10 +23,10 @@ import me.tongfei.progressbar.ProgressBar;
 public class KaleMatrix {
 
     private static Logger logger = Logger.getLogger(KaleMatrix.class);
-	
-	private int[][] pNodeID = null;
+
 	private double[][] pData = null;
 	private double[][] pSumData = null;
+	private boolean arrayBased = false;
 	
 
 	private float[] gloveArray;
@@ -46,7 +41,12 @@ public class KaleMatrix {
 	private ArrayList<Integer> rowPositions;
 	
 	private boolean isRelationMatrix;
-	
+
+	/**
+	 *
+	 * @param iRows
+	 * @param iColumns
+	 */
 	public KaleMatrix(int iRows, int iColumns) {
 
 		this.iNumberOfRows = iRows;
@@ -66,6 +66,45 @@ public class KaleMatrix {
 		
 		this.isRelationMatrix = isRelationMatrix;
 	}
+
+	public KaleMatrix(final float[] gloveArray, final int[] orderedIDs,
+					  final int dim, final boolean isRelationMatrix, final boolean asArrays) throws Exception  {
+
+		if (isRelationMatrix) logger = Logger.getLogger("KaleMatrix-Edges");
+		else logger = Logger.getLogger("KaleMatrix-Nodes");
+
+		logger.info("Initializing KaleMatrix, array based.");
+		if (gloveArray.length <= 0) throw new Exception("Received invalid GloVe array: "+gloveArray.length);
+		if (orderedIDs.length <= 0) throw new Exception("Received invalid GloVe array: "+orderedIDs.length);
+		if (dim <= 0) throw new Exception("Received invalid GloVe array: "+dim);
+
+		this.isRelationMatrix = isRelationMatrix;
+		this.arrayBased = asArrays;
+		this.gloveArray = gloveArray;
+		this.orderedIDs = orderedIDs;
+		this.iDim = dim;
+		logger.info("Arguments declarated:\n"
+				+ "\t- number of GloVe values is: "+this.gloveArray.length+"\n"
+				+ "\t- dimension is set at: "+this.iDim);
+
+		pData = new double[orderedIDs.length][];
+		pSumData = new double[orderedIDs.length][];
+		int iRows = orderedIDs.length;
+		int iColumns = dim;
+
+		pData = new double[iRows][];
+		pSumData = new double[iRows][];
+		for (int i = 0; i < iRows; i++) {
+			pData[i] = new double[iColumns];
+			pSumData[i] = new double[iColumns];
+			for (int j = 0; j < iColumns; j++) {
+				pData[i][j] = 0.0;
+				pSumData[i][j] = 0.0;
+			}
+		}
+		iNumberOfRows = iRows;
+		iNumberOfColumns =  iColumns;
+	}
 	
 	public KaleMatrix(final float[] gloveArray, final int[] orderedIDs,
 						final int dim, final boolean isRelationMatrix) throws Exception  {
@@ -83,7 +122,7 @@ public class KaleMatrix {
 		this.gloveArray = gloveArray;
 		this.orderedIDs = orderedIDs;
 		this.iDim = dim;
-		logger.info("Arguments declarated:\n"
+		logger.info("Arguments declared:\n"
 				+ "\t- number of GloVe values is: "+this.gloveArray.length+"\n"
 				+ "\t- dimension is set at: "+this.iDim);
 		
@@ -93,8 +132,36 @@ public class KaleMatrix {
 		
 		fillGloveInMatrix();
 	}
-	
+
 	private void fillGloveInMatrix() throws Exception {
+		logger.info("Start filling matrix with GloVe values.");
+
+		int id, index;
+		float value;
+			for (int i = 0; i < this.orderedIDs.length; i++) {
+				id = this.orderedIDs[i];
+				//if (id % 5000 == 0) System.out.println("KaleMatrix.fillGloveInMatrix() - Adding row for id: "+id);
+				for (int j = 0; j < this.iDim; j++) {
+					index = ((id * this.iDim) + j);
+					//System.out.println("KaleMatrix.fillGloveInMatrix() - Adding at index: "+index);
+					value = this.gloveArray[index];
+					setNeighbor(i, j, (double) value);
+				}
+				rowPositions.add(id);
+			}
+
+		for (int i = 0; i < this.orderedIDs.length; i++) {
+			for (int j = 0; j < this.iDim; j++) {
+				accumulatedByGradNeighbor(i, j);
+			}
+		}
+
+		this.iNumberOfRows = rowMap.size();
+		this.iNumberOfColumns = this.iDim;
+		logger.info("Matrix initialized with following dimensions: " + this.iNumberOfRows + "x" +this.iNumberOfColumns);
+	}
+	
+	/*private void fillGloveInMatrix(boolean withProgression) throws Exception {
 		logger.info("Start filling matrix with GloVe values.");
 		
 		try (ProgressBar pb = Configuration.progressBar("KaleMatrix", this.orderedIDs.length, "rows.")) {
@@ -128,7 +195,7 @@ public class KaleMatrix {
 		this.iNumberOfRows = rowMap.size();
 		this.iNumberOfColumns = this.iDim;
 		logger.info("Matrix initialized with following dimensions: " + this.iNumberOfRows + "x" +this.iNumberOfColumns);
-	}
+	}*/
 	
 	public int rows() {
 		return this.iNumberOfRows;
@@ -193,7 +260,7 @@ public class KaleMatrix {
 		if (j < 0 /*|| ( (!rowMap.get(i).containsKey(j)) && rowMap.get(i).size() >= iNumberOfColumns)*/ ) {
 			throw new Exception("add error in KaleMatrix: ColumnID out of range");
 		}
-		
+
 		try {			
 			if (!rowMap.containsKey(i)) {
 				HashMap<Integer, Double> map = new HashMap<Integer, Double>();
@@ -238,7 +305,7 @@ public class KaleMatrix {
 	}
 	
 	/**
-	 * 
+	 * Makes sure that the vertex or predicate ID is the right one based on the row.
 	 * @param rowPos
 	 * @return
 	 */
@@ -248,7 +315,8 @@ public class KaleMatrix {
 	}
 	
 	public KaleMatrix generateGradientMatrix() throws Exception {
-		KaleMatrix gradMat = new KaleMatrix(this.gloveArray, this.orderedIDs,
+		float[] zeroArray = new float[this.gloveArray.length];
+		KaleMatrix gradMat = new KaleMatrix(zeroArray, this.orderedIDs,
 						this.iDim, this.isRelationMatrix);
 		gradMat.resetMatrix();
 		
@@ -449,7 +517,7 @@ public class KaleMatrix {
 			}
 		}*/
 	}
-	
+
 	public boolean load(String fnInput) throws Exception {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(
 				new FileInputStream(fnInput), "UTF-8"));
@@ -482,20 +550,57 @@ public class KaleMatrix {
 		reader.close();
 		return true;
 	}
+
+	public void output(String fnOutput, boolean useToString) throws Exception {
+		Writer writer = new BufferedWriter(new FileWriter(fnOutput));
+
+		writer.write("iNumberOfRows: " + iNumberOfRows + "; iNumberOfColumns: " + iNumberOfColumns + "\n");
+		String lines = toString();
+
+		writer.write(lines);
+
+		writer.close();
+	}
 	
 	public void output(String fnOutput) throws Exception {
-		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-				new FileOutputStream(fnOutput), "UTF-8"));
-		
+		Writer writer = new BufferedWriter(new FileWriter(fnOutput));
 		writer.write("iNumberOfRows: " + iNumberOfRows + "; iNumberOfColumns: " + iNumberOfColumns + "\n");
-		for (int i = 0; i < iNumberOfRows; i++) {
-			writer.write((pData[i][0] + " ").trim());
-			for (int j = 1; j < iNumberOfColumns; j++) {
-				writer.write("\t" + (pData[i][j] + " ").trim());
+
+		String line = "";
+		int row;
+
+		if (this.arrayBased) {
+			System.out.println("KaleMatrix.output(String) - is Array based");
+			for (int i = 0; i < this.pData.length; i++) {
+				line = "Row: " + i + "\t";
+				for (int j = 0; j < this.iDim; j++) {
+					line += "" + this.pData[i][j] + "\t";
+				}
+				line += "\n";
+				writer.write(line);
+				if (i % 1000 == 0) System.out.println("KaleMatrix.output(String) - row "+i+" written to file.");
 			}
-			writer.write("\n");
+
+		} else {
+			System.out.println("KaleMatrix.output(String) - is Map based");
+			int cntr = -1;
+			for (Map.Entry entry : this.rowMap.entrySet()) {
+				row = (int) entry.getKey();
+				line = "ID: " + row + "\t";
+				cntr++;
+
+				for (Map.Entry entryCol : this.rowMap.get(row).entrySet()) {
+					/*line += String.valueOf((int) entryCol.getKey()) + ": ";
+					line += String.valueOf((double) entryCol.getValue()) + "\t";*/
+					line += (int) entryCol.getKey() + ": ";
+					line += (double) entryCol.getValue() + "\t";
+				}
+				line += "\n";
+				writer.write(line);
+				if (cntr % 1000 == 0) System.out.println("KaleMatrix.output(String) - row "+row+" written to file.");
+			}
 		}
-		
+
 		writer.close();
 	}
 	
@@ -529,22 +634,258 @@ public class KaleMatrix {
 	public boolean containsKey(final int key) {
 		return this.rowMap.containsKey(key);
 	}
-	
+
+	public ArrayList<String> toLines() {
+		ArrayList<String> lines = new ArrayList<String>();
+		String line = "";
+		int row;
+
+		if (this.arrayBased) {
+			System.out.println("KaleMatrix.toLines() - is Array based");
+			for (int i = 0; i < this.pData.length; i++) {
+				line = "Row: " + i + "\t";
+				for (int j = 0; j < this.iDim; j++) {
+					line += "" + this.pData[i][j] + "\t";
+				}
+				line += "\n";
+				lines.add(line);
+			}
+
+		} else {
+			System.out.println("KaleMatrix.toLines() - is Map based");
+			for (Map.Entry entry : this.rowMap.entrySet()) {
+				row = (int) entry.getKey();
+				line = "ID: " + row + "\t";
+
+				for (Map.Entry entryCol : this.rowMap.get(row).entrySet()) {
+					/*line += String.valueOf((int) entryCol.getKey()) + ": ";
+					line += String.valueOf((double) entryCol.getValue()) + "\t";*/
+					line += (int) entryCol.getKey() + ": ";
+					line += (double) entryCol.getValue() + "\t";
+				}
+				line += "\n";
+				lines.add(line);
+			}
+		}
+
+		return lines;
+	}
+
 	@Override
 	public String toString() {
 		String res = "";
-		int row, col;
+		int row;
 		
 		for (Map.Entry entry : this.rowMap.entrySet()) {
 			row = (int) entry.getKey();
-			res += "Row: " + row + "| ";
+			res = "ID: " + row + "\t";
 
 			for (Map.Entry entryCol : this.rowMap.get(row).entrySet()) {
-				res += "n:" + (int) entryCol.getKey();
-				res += "=" + (double) entryCol.getValue() + ", ";
+				res += String.valueOf((int) entryCol.getKey()) + ": ";
+				res += String.valueOf((double) entryCol.getValue()) + "\t";
 			}
 			res += "\n";		
 		}
 		return res;
+	}
+
+
+	/*
+	 * All array-based methods.
+	 */
+	public double arrayGet(int i, int j) throws Exception {
+		if (i < 0 || i >= iNumberOfRows) {
+			throw new Exception("get error in DenseMatrix: RowID out of range");
+		}
+		if (j < 0 || j >= iNumberOfColumns) {
+			throw new Exception("get error in DenseMatrix: ColumnID out of range");
+		}
+		return pData[i][j];
+	}
+
+	public void arraySet(int i, int j, double dValue) throws Exception {
+		if (i < 0 || i >= iNumberOfRows) {
+			throw new Exception("set error in DenseMatrix: RowID out of range");
+		}
+		if (j < 0 || j >= iNumberOfColumns) {
+			throw new Exception("set error in DenseMatrix: ColumnID out of range");
+		}
+		pData[i][j] = dValue;
+	}
+
+	public void setToValueArray(double dValue) {
+		for (int i = 0; i < iNumberOfRows; i++) {
+			for (int j = 0; j < iNumberOfColumns; j++) {
+				pData[i][j] = dValue;
+			}
+		}
+	}
+
+	public void setToRandomArray() {
+		Random rd = new Random(123);
+		for (int i = 0; i < iNumberOfRows; i++) {
+			for (int j = 0; j < iNumberOfColumns; j++) {
+				double dValue = rd.nextDouble();
+				pData[i][j] = 2.0 * dValue - 1.0;
+			}
+		}
+	}
+
+	public double getSumArray(int i, int j) throws Exception {
+		if (i < 0 || i >= iNumberOfRows) {
+			throw new Exception("get error in DenseMatrix: RowID out of range");
+		}
+		if (j < 0 || j >= iNumberOfColumns) {
+			throw new Exception("get error in DenseMatrix: ColumnID out of range");
+		}
+		return pSumData[i][j];
+	}
+
+	public void arrayAdd(int i, int j, double dValue) throws Exception {
+		if (i < 0 || i >= iNumberOfRows) {
+			throw new Exception("add error in DenseMatrix: RowID out of range");
+		}
+		if (j < 0 || j >= iNumberOfColumns) {
+			throw new Exception("add error in DenseMatrix: ColumnID out of range");
+		}
+		pData[i][j] += dValue;
+	}
+
+	public void normalizeArray() {
+		double dNorm = 0.0;
+		for (int i = 0; i < iNumberOfRows; i++) {
+			for (int j = 0; j < iNumberOfColumns; j++) {
+				dNorm += pData[i][j] * pData[i][j];
+			}
+		}
+		dNorm = Math.sqrt(dNorm);
+		if (dNorm != 0.0) {
+			for (int i = 0; i < iNumberOfRows; i++) {
+				for (int j = 0; j < iNumberOfColumns; j++) {
+					pData[i][j] /= dNorm;
+				}
+			}
+		}
+	}
+
+	public void normalizeByRowArray() {
+		for (int i = 0; i < iNumberOfRows; i++) {
+			double dNorm = 0.0;
+			for (int j = 0; j < iNumberOfColumns; j++) {
+				dNorm += pData[i][j] * pData[i][j];
+			}
+			dNorm = Math.sqrt(dNorm);
+			if (dNorm != 0.0) {
+				for (int j = 0; j < iNumberOfColumns; j++) {
+					pData[i][j] /= dNorm;
+				}
+			}
+		}
+	}
+
+	public void rescaleByRowArray() {
+		for (int i = 0; i < iNumberOfRows; i++) {
+			double dNorm = 0.0;
+			for (int j = 0; j < iNumberOfColumns; j++) {
+				dNorm += pData[i][j] * pData[i][j];
+			}
+			dNorm = Math.sqrt(dNorm);
+			if (dNorm != 0.0) {
+				for (int j = 0; j < iNumberOfColumns; j++) {
+					pData[i][j] *= Math.min(1.0, 1.0/dNorm);
+				}
+			}
+		}
+	}
+
+	public void normalizeByColumnArray() {
+		for (int j = 0; j < iNumberOfColumns; j++) {
+			double dNorm = 0.0;
+			for (int i = 0; i < iNumberOfRows; i++) {
+				dNorm += pData[i][j] * pData[i][j];
+			}
+			dNorm = Math.sqrt(dNorm);
+			if (dNorm != 0.0) {
+				for (int i = 0; i < iNumberOfRows; i++) {
+					pData[i][j] /= dNorm;
+				}
+			}
+		}
+	}
+
+	public void accumulatedByGradArray(int i, int j) throws Exception {
+		if (i < 0 || i >= iNumberOfRows) {
+			throw new Exception("add error in DenseMatrix: RowID out of range");
+		}
+		if (j < 0 || j >= iNumberOfColumns) {
+			throw new Exception("add error in DenseMatrix: ColumnID out of range");
+		}
+		pSumData[i][j] += pData[i][j] * pData[i][j];
+	}
+
+	public boolean loadArray(String fnInput) throws Exception {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(
+				new FileInputStream(fnInput), "UTF-8"));
+
+		String line = "";
+		line = reader.readLine();
+		String[] first_line = StringSplitter.RemoveEmptyEntries(StringSplitter
+				.split(":; ", line));
+		if (iNumberOfRows != Integer.parseInt(first_line[1]) ||
+				iNumberOfColumns != Integer.parseInt(first_line[3])) {
+			throw new Exception("load error in DenseMatrix: row/column number incorrect");
+		}
+
+		int iRowID = 0;
+		while ((line = reader.readLine()) != null) {
+			String[] tokens = StringSplitter.RemoveEmptyEntries(StringSplitter
+					.split("\t ", line));
+			if (iRowID < 0 || iRowID >= iNumberOfRows) {
+				throw new Exception("load error in DenseMatrix: RowID out of range");
+			}
+			if (tokens.length != iNumberOfColumns) {
+				throw new Exception("load error in DenseMatrix: ColumnID out of range");
+			}
+			for (int iColumnID = 0; iColumnID < tokens.length; iColumnID++) {
+				pData[iRowID][iColumnID] = Double.parseDouble(tokens[iColumnID]);
+			}
+			iRowID++;
+		}
+
+		reader.close();
+		return true;
+	}
+
+	public void outputArray(String fnOutput) throws Exception {
+		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+				new FileOutputStream(fnOutput), "UTF-8"));
+
+		writer.write("iNumberOfRows: " + iNumberOfRows + "; iNumberOfColumns: " + iNumberOfColumns + "\n");
+		for (int i = 0; i < iNumberOfRows; i++) {
+			writer.write((pData[i][0] + " ").trim());
+			for (int j = 1; j < iNumberOfColumns; j++) {
+				writer.write("\t" + (pData[i][j] + " ").trim());
+			}
+			writer.write("\n");
+		}
+
+		writer.close();
+	}
+
+	public void releaseMemoryArray() {
+		for (int i = 0; i < iNumberOfRows; i++) {
+			pData[i] = null;
+		}
+		pData = null;
+		iNumberOfRows = 0;
+		iNumberOfColumns = 0;
+	}
+
+	public void resetToZeroArray() {
+		for (int i = 0; i < iNumberOfRows; i++) {
+			for (int j = 0; j < iNumberOfColumns; j++) {
+				pSumData[i][j] = 0.0;
+			}
+		}
 	}
 }

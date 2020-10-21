@@ -583,6 +583,8 @@ public class DataGenerator {
 				throw new Exception("DataGenerator.generateTrainingRules() has received invalid amount of training triples: "+this.trainingTriples.size());
 			
 			for (int i = 0; i < this.trainingTriples.size(); i++) {
+				if (properTrainingRules.size() >= 1000) break;
+
 				triple = this.trainingTriples.get(i);
 				
 				if(graph.getVertexLabelProperty().getValueAsString(triple[0]).contains(PERSON_URI)) {
@@ -604,10 +606,10 @@ public class DataGenerator {
 						properTrainingRules.add(strRule);
 					}
 				} // Birth date and baptism date.
-				if (person.getBirthDate() != "" && person.getBaptismDate() != "") {
+				/*if (person.getBirthDate() != "" && person.getBaptismDate() != "") {
 					strRule = "birth_date_approx(" + person.getVertex() + "," + person.getVertBirthDate() +")";
 					
-					if (true/*person.birthBeforeBaptism(this.approxDays)*/) {
+					if (true/*person.birthBeforeBaptism(this.approxDays)*) {
 						strRule += this.sep + "&" + this.sep;
 						strRule += "baptism_date_approx(" + person.getVertex() + "," + person.getVertBaptismDate() +")";
 						strRule += this.sep + "==>" + this.sep;
@@ -616,10 +618,10 @@ public class DataGenerator {
 						properTrainingRules.add(strRule);
 					}
 				} // Baptism date and death date.
-				if (person.getBaptismDate() != "" && person.getDeathDate() != "") {
+				/*if (person.getBaptismDate() != "" && person.getDeathDate() != "") {
 					strRule = "baptism_date_approx(" + person.getVertex() + "," + person.getVertBaptismDate() +")";
 					
-					if (true/*person.birthBeforeDeath(this.approxDays)*/) {
+					if (true/*person.birthBeforeDeath(this.approxDays)*) {
 						strRule += this.sep + "&" + this.sep;
 						strRule += "death_date_approx(" + person.getVertex() + "," + person.getVertDeathDate() +")";
 						strRule += this.sep + "==>" + this.sep;
@@ -627,13 +629,13 @@ public class DataGenerator {
 						strRule +=  this.nl;
 						properTrainingRules.add(strRule);
 					}
-				}
+				}*/
 			}
 			
 			if (personCntr <= 0)
 				throw new Exception("DataGenerator.generateTrainingRules() never received any person vertices");
 			if (properTrainingRules.size() <= 0)
-				throw new Exception("DataGenerator.generateTrainingRules() received "+ personCntr +" persons, but verticesproperTrainingRules.size() = "+properTrainingRules.size());
+				throw new Exception("DataGenerator.generateTrainingRules() received "+ personCntr +" persons, but properTrainingRules.size() = "+properTrainingRules.size());
 			
 			//return properTrainingRules;
 			/*if (!this.uniqueRelationTypes.containsKey("is_same_or_before")) {
@@ -849,7 +851,7 @@ public class DataGenerator {
 		writer.close();
 	}
 	
-	/**
+	/*
 	 * 
 	 * @param bcvs
 	 * @param singleLines

@@ -1,15 +1,12 @@
 package org.uu.nl.embedding.kale;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 //import org.uu.nl.embedding.KaleOptimizer;
-import org.uu.nl.embedding.bca.BookmarkColoring;
 import org.uu.nl.embedding.bca.models.BookmarkColoringEdges;
 import org.uu.nl.embedding.bca.models.BookmarkColoringNodes;
 import org.uu.nl.embedding.kale.model.KaleModel;
@@ -27,10 +24,7 @@ import org.uu.nl.embedding.opt.grad.Adam;
 import org.uu.nl.embedding.util.CoOccurrenceMatrix;
 import org.uu.nl.embedding.util.InMemoryRdfGraph;
 import org.uu.nl.embedding.util.config.Configuration;
-import org.uu.nl.embedding.util.config.Configuration.BCA;
 import org.uu.nl.embedding.util.read.EmbeddingTextReader;
-import org.uu.nl.embedding.util.write.EmbeddingTextWriter;
-import org.uu.nl.embedding.util.write.EmbeddingWriter;
 import org.uu.nl.embedding.util.write.KaleEmbeddingTextWriter;
 
 public class KaleRunner {
@@ -252,9 +246,9 @@ public class KaleRunner {
 	 * 
 	 * @throws Exception
 	 */
-	public void CochezLearn() throws Exception {
+	/*public void CochezLearn() throws Exception {
 		this.kale.CochezLearn();
-	}
+	}*/
 	
 	/**
 	 * 
@@ -297,7 +291,7 @@ public class KaleRunner {
 	
 	public void setNumIteration(final int numIterations) {
 		this.m_NumIteration = numIterations;
-		this.kale.m_NumIteration = numIterations;
+		this.kale.m_NumEpochs = numIterations;
 	}
 	
 	public void setOutputIterSkip(final int outputIterSkip) {

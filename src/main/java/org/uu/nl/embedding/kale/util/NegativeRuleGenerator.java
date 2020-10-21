@@ -30,7 +30,7 @@ public class NegativeRuleGenerator {
 		this.iNumberOfRelations = relationTypes.size() -1; // -1 as correction for index.
 		this.relationTypes = relationTypes;
 		
-		System.out.println("NegativeRuleGenerator.constrcutor - relationTypes.size() = "+relationTypes.size());
+		//System.out.println("NegativeRuleGenerator.constrcutor - relationTypes.size() = "+relationTypes.size());
 	}
 	
 	public TripleRule generateSndNegRule() throws Exception {
@@ -50,13 +50,13 @@ public class NegativeRuleGenerator {
 			KaleTriple sndTriple = new KaleTriple(iSndHead, iNegRelation, iSndTail);
 			
 			while (iNegRelation == iSndRelation || iNegRelation == iFstRelation) {
-				System.out.println("NegativeRuleGenerator.generateSndNegRule() - Finding new iNegRelation (2)");
+				//System.out.println("NegativeRuleGenerator.generateSndNegRule() - Finding new iNegRelation (2)");
 				
 				iNegRelation = (int)(random.nextInt(iNumberOfRelations));
 				//iNegRelation = (int)(Math.random() * iNumberOfRelations);
 				sndTriple = new KaleTriple(iSndHead, iNegRelation, iSndTail);
 			}
-			System.out.println("NegativeRuleGenerator.generateSndNegRule() - New iNegRelation found (2): "+String.valueOf(iNegRelation));
+			//System.out.println("NegativeRuleGenerator.generateSndNegRule() - New iNegRelation found (2): "+String.valueOf(iNegRelation));
 			
 			TripleRule NegativeRule;
 			if (this.relationTypes != null) {
@@ -81,16 +81,16 @@ public class NegativeRuleGenerator {
 			int iSndRelation = PositiveRule.getSecondTriple().relation();
 			
 			int iNegRelation = iTrdRelation;
-			KaleTriple trdTriple = new KaleTriple(iTrdHead, iTrdTail, iNegRelation);
+			KaleTriple trdTriple = new KaleTriple(iTrdHead, iNegRelation, iTrdTail);
 			
 			while (iNegRelation == iTrdRelation || iNegRelation == iSndRelation || iNegRelation == iFstRelation) {
-				System.out.println("NegativeRuleGenerator.generateSndNegRule() - Finding new iNegRelation (3)");
+				//System.out.println("NegativeRuleGenerator.generateSndNegRule() - Finding new iNegRelation (3)");
 
 				iNegRelation = (int)(random.nextInt(iNumberOfRelations));
 				//iNegRelation = (int)(Math.random() * iNumberOfRelations);
-				trdTriple = new KaleTriple(iTrdHead, iTrdTail, iNegRelation);
+				trdTriple = new KaleTriple(iTrdHead, iNegRelation, iTrdTail);
 			}
-			System.out.println("NegativeRuleGenerator.generateSndNegRule() - New iNegRelation found (3): "+String.valueOf(iNegRelation));
+			//System.out.println("NegativeRuleGenerator.generateSndNegRule() - New iNegRelation found (3): "+String.valueOf(iNegRelation));
 			
 			TripleRule NegativeRule;
 			if (this.relationTypes != null) {
@@ -117,7 +117,7 @@ public class NegativeRuleGenerator {
 		int iNegRelation = iFstRelation;
 		KaleTriple fstTriple = new KaleTriple(ifstHead, iNegRelation, ifstTail);
 		while (iNegRelation == iSndRelation || iNegRelation == iFstRelation) {
-			System.out.println("NegativeRuleGenerator.generateFstNegRule() - Finding new iNegRelation");
+			//System.out.println("NegativeRuleGenerator.generateFstNegRule() - Finding new iNegRelation");
 			
 			iNegRelation = (int)(random.nextInt(iNumberOfRelations));
 			//iNegRelation = (int)(Math.random() * iNumberOfRelations);
